@@ -27,12 +27,22 @@ set(CUDA_HOST_COMPILER /usr/bin/g++)
 include_directories(
     /usr/include/gstreamer-1.0 
     /usr/include/glib-2.0 
-    /usr/lib/aarch64-linux-gnu/glib-2.0/include 
-    )
+    /usr/lib/${TEGRA_ARMABI}/glib-2.0/include
 
-# file(GLOB CLASS_SRC 
-       
-#            )
+    /usr/include/libdrm
+    /usr/include/${TEGRA_ARMABI}
+    utils/
+    utils/include
+    utils/cuda
+    utils/Argus
+)
+
+file(GLOB CLASS_SRC 
+    "utils/cuda/*.cu"
+    "utils/*.cpp"
+    "utils/classes/*.cpp"
+    "utils/Argus/*.cpp"
+)
 
 link_directories(	
             ${CUDA_PATH}/lib64
@@ -56,6 +66,7 @@ cuda_add_executable(${PROJECT_NAME} main.cpp ${CLASS_SRC} )
 set(CMAKE_CXX_STANDARD 17)
 add_compile_options(${CMAKE_MFC_FLAG} )
 target_link_libraries(${PROJECT_NAME}  vpi	-lpthread -lv4l2 -lEGL -lGLESv2  -lnvbuf_utils 
+    -lnveglstream_camconsumer -lnvargus_socketclient
     -lnvjpeg -lnvosd -ldrm -lcuda -lcudart ${CUDA_nppicc_LIBRARY} 
     -lgstreamer-1.0 -lgobject-2.0 -lglib-2.0 -lgio-2.0 -lgstrtsp-1.0 -lgstsdp-1.0 
     -lgstrtp-1.0 -lgstbase-1.0  -lgstnet-1.0 -lgstapp-1.0 
