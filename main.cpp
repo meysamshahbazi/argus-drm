@@ -11,12 +11,8 @@
 
 
 
-int main(int argc, char** argv) {
-    // saveEngineFile("/home/user/data/rdian.onnx","/home/user/data/rdian.engine");
-    // stmtracker::gen_engine_from_onnx();
-    // return -1;
-    
-    // gst_init(&argc, &argv);
+int main(int argc, char** argv) {    
+    gst_init(&argc, &argv);
 
     return 0;
 }

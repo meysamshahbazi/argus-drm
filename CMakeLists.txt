@@ -14,7 +14,6 @@ set(CUDA_PATH /usr/local/cuda-10.2)
 set(TEGRA_ARMABI aarch64-linux-gnu)
 set(CUDA_TOOLKIT_ROOT_DIR /usr/local/cuda-10.2)
 
-
 find_package(CUDA REQUIRED)
 find_package(CUDNN REQUIRED)
 find_package(OpenCV  REQUIRED)
@@ -48,7 +47,7 @@ set(CUDA_NVCC_FLAGS
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 SET(GCC_COVERAGE_COMPILE_FLAGS "-std=c++14 -Wunused-function -fPIC")
-SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}" )
+SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}" )
 
 # TARGETS --------------------------------------------------------------------------------------------------------------
 
@@ -68,8 +67,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${CUDNN_INCLUDE_DIRS} ${OpenCV
     ${TensorRT_INCLUDE_DIRS}  )
 
 find_package(Threads REQUIRED)
-target_link_libraries(${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT}  -lculibos -lpthread -lrt -ldl -lm 
-) 
+target_link_libraries(${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT}  -lculibos -lpthread -lrt -ldl -lm) 
 install(TARGETS argus-drm DESTINATION bin)
 
 target_compile_options(${PROJECT_NAME} PRIVATE -fopenmp -fPIC ) # -Wall  -ldl
