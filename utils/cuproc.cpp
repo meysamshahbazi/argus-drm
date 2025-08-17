@@ -84,7 +84,6 @@ void CudaProcess::printImageInfo() const
     printf("eglColorFormat: %d\t",eglFrame.eglColorFormat);
     printf("cuFormat: %d\t",eglFrame.cuFormat);
     printf("\n-------------------------------------------------\n");
-
 }
 
 int CudaProcess::getPitch()

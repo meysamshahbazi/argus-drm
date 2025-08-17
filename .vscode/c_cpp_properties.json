@@ -9,7 +9,9 @@
                 "/usr/include/glib-2.0/**",
                 "/usr/lib/x86_64-linux-gnu/glib-2.0/include",
                 "/usr/local/include/opencv4",
-                "/usr/local/cuda-12.9/include/"
+                "/usr/local/cuda-12.9/include/",
+                "/usr/include/gtk-2.0",
+                "/usr/include/cairo"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

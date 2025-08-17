@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2016, NVIDIA CORPORATION. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,51 +26,18 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef JPEGCONSUMER_H
-#define JPEGCONSUMER_H
+#ifndef _EGLSTREAM_H
+#define _EGLSTREAM_H
 
-#include <Argus/Argus.h>
-#include <EGLStream.h>
-#include "Thread.h"
-#include "EGLGlobal.h"
+/**
+ * @file EGLStream.h
+ * This is the main include file for the EGLStream utility library.
+ */
 
-namespace ArgusSamples
-{
+#include "EGLStream/ArgusCaptureMetadata.h"
+#include "EGLStream/FrameConsumer.h"
+#include "EGLStream/Frame.h"
+#include "EGLStream/Image.h"
+#include "EGLStream/MetadataContainer.h"
 
-using namespace Argus;
-using namespace EGLStream;
-
-/*******************************************************************************
- * JPEG Consumer thread:
- *   Creates a FrameConsumer object to consume frames from a stream and write
- *   JPEG files to disk.
- ******************************************************************************/
-class JPEGConsumerThread : public Thread
-{
-public:
-
-    explicit JPEGConsumerThread(OutputStream *stream)
-        : m_stream(stream)
-    {
-    }
-    ~JPEGConsumerThread()
-    {
-    }
-
-private:
-
-
-    /** @name Thread methods */
-    /**@{*/
-    virtual bool threadInitialize();
-    virtual bool threadExecute();
-    virtual bool threadShutdown();
-    /**@}*/
-
-    OutputStream* m_stream;
-    UniqueObj<FrameConsumer> m_consumer;
-};
-
-} // namespace ArgusSamples
-
-#endif // JPEGCONSUMER
+#endif

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.1)
 
 set(CMAKE_C_COMPILER "gcc")
 set(CMAKE_CXX_COMPILER "g++")
@@ -14,11 +14,22 @@ set(CUDA_PATH /usr/local/cuda-10.2)
 set(TEGRA_ARMABI aarch64-linux-gnu)
 set(CUDA_TOOLKIT_ROOT_DIR /usr/local/cuda-10.2)
 
+set(CMAKE_MODULE_PATH "/usr/src/jetson_multimedia_api/argus/cmake/" "${CMAKE_MODULE_PATH}")
+
 find_package(CUDA REQUIRED)
 find_package(CUDNN REQUIRED)
 find_package(OpenCV  REQUIRED)
 find_package(TensorRT REQUIRED)
 find_package(vpi 1.2 REQUIRED)
+# find_package(Argus REQUIRED)
+find_package(X11 REQUIRED)
+
+find_package(PkgConfig REQUIRED)
+
+pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
+pkg_check_modules(Cairo REQUIRED cairo)
+
+# find_package(GTK3 REQUIRED)
 
 set(CUDA_SEPARABLE_COMPILATION ON)
 set(CUDA_PROPAGATE_HOST_FLAGS OFF)
@@ -27,14 +38,19 @@ set(CUDA_HOST_COMPILER /usr/bin/g++)
 include_directories(
     /usr/include/gstreamer-1.0 
     /usr/include/glib-2.0 
+    /usr/include/gtk-3.0/
+    /usr/include/cairo/
+    /usr/include/pango-1.0/
+    /usr/include/gtk-unix-print-2.0/
     /usr/lib/${TEGRA_ARMABI}/glib-2.0/include
-
     /usr/include/libdrm
+    /usr/include/libpng16
     /usr/include/${TEGRA_ARMABI}
     utils/
-    utils/include
+    utils/include/
+    utils/include/EGLStream
     utils/cuda
-    utils/Argus
+    utils/Argus/
 )
 
 file(GLOB CLASS_SRC 
@@ -42,6 +58,10 @@ file(GLOB CLASS_SRC
     "utils/*.cpp"
     "utils/classes/*.cpp"
     "utils/Argus/*.cpp"
+    "argus_capture.cpp"
+    "utils/gtx/*.cpp"
+    "utils/gtk/*.cpp"
+    "utils/Argus/nvmmapi/*.cpp"
 )
 
 link_directories(	
@@ -49,7 +69,13 @@ link_directories(
             /usr/lib/${TEGRA_ARMABI}
             /usr/lib/${TEGRA_ARMABI}/tegra
             /usr/local/lib
+             ${GTK3_LIBRARY_DIRS}
         )
+
+
+add_definitions(
+    ${GTK3_CFLAGS_OTHER}
+    )
 
 set(CUDA_NVCC_FLAGS
     ${CUDA_NVCC_FLAGS};
@@ -72,13 +98,13 @@ target_link_libraries(${PROJECT_NAME}  vpi	-lpthread -lv4l2 -lEGL -lGLESv2  -lnv
     -lgstrtp-1.0 -lgstbase-1.0  -lgstnet-1.0 -lgstapp-1.0 
 )
 
-target_link_libraries(${PROJECT_NAME}  ${CUDNN_LIBRARIES}  ${CUDA_LIBRARIES} ${TensorRT_LIBRARIES} ${OpenCV_LIBS} ) 
+target_link_libraries(${PROJECT_NAME}  ${CUDNN_LIBRARIES}  ${CUDA_LIBRARIES} ${TensorRT_LIBRARIES} ${OpenCV_LIBS} ${GTK3_LIBRARIES} ${X11_LIBRARIES}) 
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${CUDNN_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${CUDA_INCLUDE_DIRS} 
+target_include_directories(${PROJECT_NAME} PUBLIC ${GTK3_INCLUDE_DIRS} ${CUDNN_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${CUDA_INCLUDE_DIRS} 
     ${TensorRT_INCLUDE_DIRS}  )
 
 find_package(Threads REQUIRED)
-target_link_libraries(${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT}  -lculibos -lpthread -lrt -ldl -lm) 
+target_link_libraries(${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT}  -lculibos -lpthread -lrt -ldl -lm ) 
 install(TARGETS argus-drm DESTINATION bin)
 
 target_compile_options(${PROJECT_NAME} PRIVATE -fopenmp -fPIC ) # -Wall  -ldl
