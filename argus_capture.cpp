@@ -1,18 +1,21 @@
 #include "argus_capture.h"
 #include <iostream>
+#include "sysio.h"
 
 using namespace Argus;
-// using namespace ArgusSamples;
+using namespace ArgusSamples;
 
-namespace ArgusSamples {
-ConsumerThread::ConsumerThread(OutputStream* stream) :
+namespace ArgusSamples{
+ConsumerThread::ConsumerThread(OutputStream* stream, ArgusCapture* ac) :
         m_stream(stream),
+        ac{ac},
         m_gotError(false)
 {
+
 }
 
-ConsumerThread::~ConsumerThread()
-{
+ConsumerThread::~ConsumerThread() {
+
 }
 
 bool ConsumerThread::threadInitialize()
@@ -20,57 +23,44 @@ bool ConsumerThread::threadInitialize()
     return true;
 }
 
-bool ConsumerThread::threadExecute()
+bool ConsumerThread::threadExecute() 
 {
     IBufferOutputStream* stream = interface_cast<IBufferOutputStream>(m_stream);
     if (!stream)
         ORIGINATE_ERROR("Failed to get IBufferOutputStream interface");
 
-    struct v4l2_buffer v4l2_buf;
-    struct v4l2_plane planes[MAX_PLANES];
-
-    memset(&v4l2_buf, 0, sizeof(v4l2_buf));
-    memset(planes, 0, MAX_PLANES * sizeof(struct v4l2_plane));
-    v4l2_buf.m.planes = planes;
-
-   
-
-    /* Keep acquire frames and queue into encoder */
-    while (!m_gotError)
-    {
-        NvBuffer *share_buffer;
-
-        /* Dequeue from encoder first */
-        // CHECK_ERROR(m_VideoEncoder->output_plane.dqBuffer(v4l2_buf, NULL,
-        //                                                     &share_buffer, 10/*retry*/));
-        /* Release the frame */
-        DmaBuffer *dmabuf = static_cast<DmaBuffer*>(share_buffer);
+    for (int bufferIndex = 0; bufferIndex < 1; bufferIndex++) {
+        // v4l2_buf.index = bufferIndex;
+        Buffer* buffer = stream->acquireBuffer();
+        /* Convert Argus::Buffer to DmaBuffer and queue into v4l2 encoder */
+        
+        DmaBuffer *dmabuf = DmaBuffer::fromArgusBuffer(buffer);
         stream->releaseBuffer(dmabuf->getArgusBuffer());
+    }
 
-        assert(dmabuf->getFd() == v4l2_buf.m.planes[0].m.fd);
-
-
+    // /* Keep acquire frames and queue into encoder */
+    int idx = 0;
+    while (!m_gotError) {
+        NvBuffer *share_buffer;
         /* Acquire a Buffer from a completed capture request */
         Argus::Status status = STATUS_OK;
         Buffer* buffer = stream->acquireBuffer(TIMEOUT_INFINITE, &status);
-        if (status == STATUS_END_OF_STREAM)
-        {
+        if (status == STATUS_END_OF_STREAM) {
             /* Timeout or error happen, exit */
             break;
         }
-
-        std::cout << "im here\n";
-
+        DmaBuffer *dmabuf;
         /* Convert Argus::Buffer to DmaBuffer and get FD */
         dmabuf = DmaBuffer::fromArgusBuffer(buffer);
         int dmabuf_fd = dmabuf->getFd();
-
-
-
+        last_fd = dmabuf_fd;
+        ac->setFd(last_fd);
+        stream->releaseBuffer(dmabuf->getArgusBuffer());
+        // usleep(30000);
     }
 
-    requestShutdown();
 
+    requestShutdown();
     return true;
 }
 
@@ -78,73 +68,96 @@ bool ConsumerThread::threadShutdown()
 {
     return true;
 }
+
+void ConsumerThread::abort()
+{
+    m_gotError = true;
 }
+
+}
+
 ArgusCapture::ArgusCapture() {
 
     STREAM_SIZE = (1920, 1080);
-
     /* Get default EGL display */
     eglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-    if (eglDisplay == EGL_NO_DISPLAY) {
-        printf("Cannot get EGL display.\n");
-    }
+}
 
+bool ArgusCapture::run() {
+    pthread_create(&ptid_run, NULL, (THREADFUNCPTR)&func_grab_run, (void *)this);
+}
 
+void* ArgusCapture::func_grab_run(void* arg) {
+    pthread_detach(pthread_self());
+    ArgusCapture* thiz = (ArgusCapture*) arg;
+    thiz->thread_func();
+    pthread_exit(NULL);
+}
+
+bool ArgusCapture::thread_func() {
     /* Create the CameraProvider object and get the core interface */
-    cameraProvider = UniqueObj<CameraProvider>(CameraProvider::create());
-
+    UniqueObj<CameraProvider> cameraProvider = UniqueObj<CameraProvider>(CameraProvider::create());
     ICameraProvider *iCameraProvider = interface_cast<ICameraProvider>(cameraProvider);
     if (!iCameraProvider)
-        std::cout << "ERROR Failed to create CameraProvider\n";
-    
+        ORIGINATE_ERROR("Failed to create CameraProvider");
+
     /* Get the camera devices */
     std::vector<CameraDevice*> cameraDevices;
     iCameraProvider->getCameraDevices(&cameraDevices);
     if (cameraDevices.size() == 0)
-        std::cout << "ERROR No cameras available\n";
+        ORIGINATE_ERROR("No cameras available");
 
+    if (CAMERA_INDEX >= cameraDevices.size())
+    {
+        PRODUCER_PRINT("CAMERA_INDEX out of range. Fall back to 0\n");
+        CAMERA_INDEX = 0;
+    }
 
     /* Create the capture session using the first device and get the core interface */
     UniqueObj<CaptureSession> captureSession(
             iCameraProvider->createCaptureSession(cameraDevices[CAMERA_INDEX]));
-    iCaptureSession = interface_cast<ICaptureSession>(captureSession);
+    ICaptureSession *iCaptureSession = interface_cast<ICaptureSession>(captureSession);
     if (!iCaptureSession)
-        std::cout << "ERROR Failed to get ICaptureSession interface\n";
+        ORIGINATE_ERROR("Failed to get ICaptureSession interface");
 
     /* Create the OutputStream */
-    std::cout << "Creating output stream\n" ;
+    PRODUCER_PRINT("Creating output stream\n");
     UniqueObj<OutputStreamSettings> streamSettings(
         iCaptureSession->createOutputStreamSettings(STREAM_TYPE_BUFFER));
     IBufferOutputStreamSettings *iStreamSettings =
         interface_cast<IBufferOutputStreamSettings>(streamSettings);
     if (!iStreamSettings)
-        std::cout << "ERROR Failed to get IBufferOutputStreamSettings interface\n";
-
+        ORIGINATE_ERROR("Failed to get IBufferOutputStreamSettings interface");
+    
+    
     /* Configure the OutputStream to use the EGLImage BufferType */
     iStreamSettings->setBufferType(BUFFER_TYPE_EGL_IMAGE);
-
+    // iStreamSettings->setPixelForma()
     /* Create the OutputStream */
-    outputStream = UniqueObj<OutputStream>(iCaptureSession->createOutputStream(streamSettings.get()));
-    iBufferOutputStream = interface_cast<IBufferOutputStream>(outputStream);
+    UniqueObj<OutputStream> outputStream(iCaptureSession->createOutputStream(streamSettings.get()));
+    IBufferOutputStream *iBufferOutputStream = interface_cast<IBufferOutputStream>(outputStream);
 
     /* Allocate native buffers */
-    // DmaBuffer* nativeBuffers[NUM_BUFFERS];
+    DmaBuffer* nativeBuffers[NUM_BUFFERS];
 
-    for (uint32_t i = 0; i < NUM_BUFFERS; i++)
-    {
-        nativeBuffers[i] = ArgusSamples ::DmaBuffer::create(STREAM_SIZE, NvBufferColorFormat_NV12,
-                    NvBufferLayout_Pitch ); //NvBufferLayout_BlockLinear
+    for (uint32_t i = 0; i < NUM_BUFFERS; i++) {
+        // nativeBuffers[i] = DmaBuffer::create(STREAM_SIZE, NvBufferColorFormat_NV12,
+        //             DO_CPU_PROCESS ? NvBufferLayout_Pitch : NvBufferLayout_BlockLinear);
+
+        nativeBuffers[i] = DmaBuffer::create(STREAM_SIZE, NvBufferColorFormat_NV12, NvBufferLayout_Pitch);
+        // nativeBuffers[i] = DmaBuffer::create(STREAM_SIZE, NvBufferColorFormat_ABGR32, NvBufferLayout_Pitch);
+
         if (!nativeBuffers[i])
-            std::cout << "ERROR Failed to allocate NativeBuffer\n";
+            ORIGINATE_ERROR("Failed to allocate NativeBuffer");
     }
 
     /* Create EGLImages from the native buffers */
-    // EGLImageKHR eglImages[NUM_BUFFERS];
+    EGLImageKHR eglImages[NUM_BUFFERS];
     for (uint32_t i = 0; i < NUM_BUFFERS; i++)
     {
         eglImages[i] = nativeBuffers[i]->createEGLImage(eglDisplay);
         if (eglImages[i] == EGL_NO_IMAGE_KHR)
-            std::cout << "ERROR Failed to create EGLImage\n";
+            ORIGINATE_ERROR("Failed to create EGLImage");
     }
 
     /* Create the BufferSettings object to configure Buffer creation */
@@ -152,7 +165,7 @@ ArgusCapture::ArgusCapture() {
     IEGLImageBufferSettings *iBufferSettings =
         interface_cast<IEGLImageBufferSettings>(bufferSettings);
     if (!iBufferSettings)
-        std::cout << "ERROR Failed to create BufferSettings\n";
+        ORIGINATE_ERROR("Failed to create BufferSettings");
 
     /* Create the Buffers for each EGLImage (and release to
        stream for initial capture use) */
@@ -169,62 +182,50 @@ ArgusCapture::ArgusCapture() {
         nativeBuffers[i]->setArgusBuffer(buffers[i].get());
 
         if (!interface_cast<IEGLImageBuffer>(buffers[i]))
-            std::cout << "ERROR Failed to create Buffer\n";
+            ORIGINATE_ERROR("Failed to create Buffer");
         if (iBufferOutputStream->releaseBuffer(buffers[i].get()) != STATUS_OK)
-            std::cout << "ERROR Failed to release Buffer for capture use\n";
+            ORIGINATE_ERROR("Failed to release Buffer for capture use");
     }
 
-
-}
-
-bool ArgusCapture::run() {
     /* Launch the FrameConsumer thread to consume frames from the OutputStream */
-    std::cout << "Launching consumer thread\n";
-    ArgusSamples::ConsumerThread frameConsumerThread(outputStream.get());
-    // frameConsumerThread = UniqueObj<ConsumerThread>(outputStream.get());
-
-    frameConsumerThread.initialize();
-    // PROPAGATE_ERROR();
+    PRODUCER_PRINT("Launching consumer thread\n");
+    ConsumerThread frameConsumerThread(outputStream.get(), this);
+    PROPAGATE_ERROR(frameConsumerThread.initialize());
 
     /* Wait until the consumer is connected to the stream */
-    // PROPAGATE_ERROR(frameConsumerThread.waitRunning());
-    frameConsumerThread.waitRunning();
+    PROPAGATE_ERROR(frameConsumerThread.waitRunning());
 
     /* Create capture request and enable output stream */
     UniqueObj<Request> request(iCaptureSession->createRequest());
     IRequest *iRequest = interface_cast<IRequest>(request);
     if (!iRequest)
-        std::cout << "ERROR Failed to create Request\n";
+        ORIGINATE_ERROR("Failed to create Request");
     iRequest->enableOutputStream(outputStream.get());
-
+    // iRequest->se
     ISourceSettings *iSourceSettings = interface_cast<ISourceSettings>(iRequest->getSourceSettings());
     if (!iSourceSettings)
-        std::cout << "ERROR Failed to get ISourceSettings interface\n";
+        ORIGINATE_ERROR("Failed to get ISourceSettings interface");
     iSourceSettings->setFrameDurationRange(Range<uint64_t>(1e9/DEFAULT_FPS));
 
     /* Submit capture requests */
-    std::cout << "Starting repeat capture requests.\n";
+    PRODUCER_PRINT("Starting repeat capture requests.\n");
     if (iCaptureSession->repeat(request.get()) != STATUS_OK)
-        std::cout << "ERROR Failed to start repeat capture request\n";
-
+        ORIGINATE_ERROR("Failed to start repeat capture request");
 
     /* Wait for CAPTURE_TIME seconds */
-    while ( !frameConsumerThread.isInError())
+    // for (int i = 0; i < 3 && !frameConsumerThread.isInError(); i++){
+    while (!frameConsumerThread.isInError()) {
+        // last_fd = frameConsumerThread.getFd();
         sleep(1);
-
+    } 
+        
     /* Stop the repeating request and wait for idle */
     iCaptureSession->stopRepeat();
     iBufferOutputStream->endOfStream();
     iCaptureSession->waitForIdle();
 
     /* Wait for the consumer thread to complete */
-    // PROPAGATE_ERROR(frameConsumerThread.shutdown());
-    frameConsumerThread.shutdown();
-
-    return true;
-}
-
-ArgusCapture::~ArgusCapture() {
+    PROPAGATE_ERROR(frameConsumerThread.shutdown());
 
     /* Destroy the output stream to end the consumer thread */
     outputStream.reset();
@@ -237,5 +238,12 @@ ArgusCapture::~ArgusCapture() {
     for (uint32_t i = 0; i < NUM_BUFFERS; i++)
         delete nativeBuffers[i];
 
+    PRODUCER_PRINT("Done -- exiting.\n");
+    return true;
+}
+
+ArgusCapture::~ArgusCapture() {
     eglTerminate(eglDisplay);
 }
+
+
