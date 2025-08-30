@@ -56,7 +56,6 @@ bool ConsumerThread::threadExecute()
         last_fd = dmabuf_fd;
         ac->setFd(last_fd);
         stream->releaseBuffer(dmabuf->getArgusBuffer());
-        // usleep(30000);
     }
 
 
@@ -141,9 +140,6 @@ bool ArgusCapture::thread_func() {
     DmaBuffer* nativeBuffers[NUM_BUFFERS];
 
     for (uint32_t i = 0; i < NUM_BUFFERS; i++) {
-        // nativeBuffers[i] = DmaBuffer::create(STREAM_SIZE, NvBufferColorFormat_NV12,
-        //             DO_CPU_PROCESS ? NvBufferLayout_Pitch : NvBufferLayout_BlockLinear);
-
         nativeBuffers[i] = DmaBuffer::create(STREAM_SIZE, NvBufferColorFormat_NV12, NvBufferLayout_Pitch);
         // nativeBuffers[i] = DmaBuffer::create(STREAM_SIZE, NvBufferColorFormat_ABGR32, NvBufferLayout_Pitch);
 
@@ -173,6 +169,7 @@ bool ArgusCapture::thread_func() {
     for (uint32_t i = 0; i < NUM_BUFFERS; i++)
     {
         iBufferSettings->setEGLImage(eglImages[i]);
+        // iBufferSettings->set
         iBufferSettings->setEGLDisplay(eglDisplay);
         buffers[i].reset(iBufferOutputStream->createBuffer(bufferSettings.get()));
         IBuffer *iBuffer = interface_cast<IBuffer>(buffers[i]);
@@ -213,9 +210,7 @@ bool ArgusCapture::thread_func() {
         ORIGINATE_ERROR("Failed to start repeat capture request");
 
     /* Wait for CAPTURE_TIME seconds */
-    // for (int i = 0; i < 3 && !frameConsumerThread.isInError(); i++){
     while (!frameConsumerThread.isInError()) {
-        // last_fd = frameConsumerThread.getFd();
         sleep(1);
     } 
         

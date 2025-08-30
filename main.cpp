@@ -68,8 +68,9 @@ int main(int argc, char** argv) {
 
         NvBufferTransform(fd_, argb_fd , &transParams);    
         CudaProcess cup(argb_fd);
-        cudaDrawRect( cup.getImgPtr(), cup.getImgPtr(), 1920, 1080, IMAGE_RGBA8, 100, 100, 120, 110, 
-            make_float4(54, 69, 79, 255.0f), make_float4(0.0f, 0.0f, 0.0f, 0.0f), 0 );
+        auto img_ptr = cup.getImgPtr();
+        cudaDrawRect(img_ptr, img_ptr , 1920, 1080, IMAGE_RGBA8, 100, 100, 150, 150, 
+            make_float4(54, 69, 79, 255.0f), make_float4(200.0f, 0.0f, 0.0f, 255.0f), 1 );
         
         cup.freeImage();
        

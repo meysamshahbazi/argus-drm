@@ -194,18 +194,5 @@ private:
     Size2D<uint32_t> STREAM_SIZE;
     const uint32_t            DEFAULT_FPS = 30;
 
-    // UniqueObj<CameraProvider> cameraProvider;
-    // ICaptureSession *iCaptureSession;
-    // IBufferOutputStream *iBufferOutputStream;
-
-    // EGLDisplay   eglDisplay{EGL_NO_DISPLAY};
-    
-    // UniqueObj<OutputStream> outputStream;
-    // EGLImageKHR eglImages[NUM_BUFFERS];
-    // ArgusSamples::DmaBuffer* nativeBuffers[NUM_BUFFERS];
-
-
-    // NvV4l2Element *capture_plane;
-
 };
 
