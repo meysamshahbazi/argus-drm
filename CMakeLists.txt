@@ -62,6 +62,8 @@ file(GLOB CLASS_SRC
     "utils/gtx/*.cpp"
     "utils/gtk/*.cpp"
     "utils/Argus/nvmmapi/*.cpp"
+    "*.cpp",
+    "*.cu",
 )
 
 link_directories(	
