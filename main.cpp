@@ -12,17 +12,14 @@
 #include "cudaDraw.h"
 
 #include "yolo12.h"
-
+#include "lpr.h"
 
 int main(int argc, char** argv) {
     // saveEngineFile("/home/user/yolov12n.onnx","/home/user/yolov12n.engine");
     // saveEngineFile("/home/user/best_accuracy.onnx","/home/user/best_accuracy.engine");
     // return -1;
 
-    
-
-
-
+    LPR lpr;    
 
     Yolo12 yolo(1920,1080);
 
