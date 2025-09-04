@@ -69,18 +69,17 @@ void Yolo12::loadEngine()
     delete[] trtModelStream;
 }
 
-Yolo12::Yolo12(int img_w ,int img_h)
-    :img_w{img_w},img_h{img_h}
+Yolo12::Yolo12(int img_w ,int img_h, std::string engine_file_path, cv::Rect2i &win)
+    :img_w{img_w},img_h{img_h}, engine_file_path{engine_file_path}, win{win}
 {
-    engine_file_path = "/home/user/yolov12n.engine";
     loadEngine();
     buffers.reserve(engine->getNbBindings());
-    input_h = engine->getBindingDimensions(0).d[2];
-    input_w = engine->getBindingDimensions(0).d[3];
+    input_w = engine->getBindingDimensions(0).d[2];
+    input_h = engine->getBindingDimensions(0).d[3];
     detection_attribute_size = engine->getBindingDimensions(1).d[1];
     num_detections = engine->getBindingDimensions(1).d[2];
 
-    std::cout << "----->YOLO12 " << input_h << " "<< input_w << " "<< detection_attribute_size << " "<< num_detections << std::endl;
+    std::cout << "----->YOLO12 " << input_w << " "<< input_h << " "<< detection_attribute_size << " "<< num_detections << std::endl;
     // ----->YOLO12 640 640 84 8400
     num_classes = detection_attribute_size - 4;
 
@@ -222,10 +221,10 @@ void Yolo12::postprocess(std::vector<Object> &objects) {
         result.h = boxes[idx].height;
 
 
-        result.x = result.x*scale + win.x;
-        result.y = result.y*scale + win.y;
-        result.w = result.w*scale;
-        result.h = result.h*scale;
+        result.x = result.x*scale_x + win.x;
+        result.y = result.y*scale_y + win.y;
+        result.w = result.w*scale_x;
+        result.h = result.h*scale_y;
         result.is_selected = false;
         objects.push_back(result);
     }
@@ -233,9 +232,8 @@ void Yolo12::postprocess(std::vector<Object> &objects) {
 
 std::vector<Object> Yolo12::apply(int fd) {
     std::vector<Object> objects;
-
-    win = cv::Rect2i(0,60,1920,960);
-    scale = 6;
+    scale_x = 6.0f;
+    scale_y = 3.0f;
     int src_dmabuf_fds[1];
     src_dmabuf_fds[0] = fd;
 
@@ -261,7 +259,6 @@ std::vector<Object> Yolo12::apply(int fd) {
 
     CudaProcess cup{fd_blob};
     auto blob_ptr = cup.getImgPtr();
-    
     cudaBlobFromImageRGB(blob_ptr, blob, cup.getPitch()/4);
     cup.freeImage();
 
