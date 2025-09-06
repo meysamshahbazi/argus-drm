@@ -8,24 +8,12 @@
 #include "tegra_drm_nvdc.h"
 
 #include "argus_capture.h"
-#include "cuproc.h"
-#include "cudaDraw.h"
-
-#include "yolo12.h"
-#include "lpr.h"
+#include "process_frame.h"
 
 int main(int argc, char** argv) {
     // saveEngineFile("/home/user/best.onnx","/home/user/best.engine");
     // saveEngineFile("/home/user/best_accuracy.onnx","/home/user/best_accuracy.engine");
     // return -1;
-
-    // LPR lpr;    
-    auto win = cv::Rect2i(0,60,1920,960); // 320*320
-    Yolo12 car_detect(1920,1080,"/home/user/best.engine", win);
-
-    auto win_plate = cv::Rect2i(0,0,160,960); // 320*320
-
-    Yolo12 plate_detect(160,160,"/home/user/plate.engine", win_plate);
 
     NvBufferSession nbs;
     nbs = NvBufferSessionCreate();
@@ -74,37 +62,14 @@ int main(int argc, char** argv) {
     int render_cnt = 0;
     int render_fd;
 
-    while(1) {
-        
+    ProcessFrame pf;
 
+    while(1) {
         int fd_ = ac.getFd();
         if (fd_ == -1) continue;
 
         NvBufferTransform(fd_, argb_fd , &transParams);
-
-        auto start = std::chrono::system_clock::now();
-        auto objs = car_detect.apply(argb_fd);
-        auto end = std::chrono::system_clock::now();
-
-        // for (auto obj : objs){
-        //     std::cout << obj.label << ", ";
-        // }
-        // std::cout << std::endl;
-
-        auto micro = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-        std::cout << "detect: " << micro/1000.0f << std::endl;
-        
-        CudaProcess cup(argb_fd);
-        auto img_ptr = cup.getImgPtr();
-
-        for (auto obj : objs){
-            std::cout << obj.label << ", " << obj.x<< ", " << obj.y << ", " << obj.x + obj.w  << ", " <<  obj.y + obj.h << " ";
-            cudaDrawRect(img_ptr, img_ptr , 1920, 1080, IMAGE_RGBA8, obj.x, obj.y, obj.x + obj.w , obj.y + obj.h, 
-                make_float4(0.0, 0.0, 0.0, 0.0), make_float4(200.0f, 0.0f, 0.0f, 255.0f), 1 );
-        }
-        cup.freeImage();
-       
-
+        argb_fd = pf.apply(argb_fd);
         if (render_cnt < NUM_RENDER_BUFFERS ) {
             render_fd = render_fd_arr[render_cnt];
             render_cnt++;

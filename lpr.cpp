@@ -1,8 +1,6 @@
 
 #include "lpr.h"
 
-
-
 LPR::LPR() {
     engine_file_path = "/home/user/best_accuracy.engine";
     loadEngine();
@@ -27,8 +25,6 @@ LPR::LPR() {
         auto micro = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
         std::cout << "lpr: " << micro/1000.0f << std::endl;
     }
-
-
 }
 
 LPR::~LPR() {
