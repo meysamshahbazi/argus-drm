@@ -15,6 +15,9 @@ int main(int argc, char** argv) {
     // saveEngineFile("/home/user/best_accuracy.onnx","/home/user/best_accuracy.engine");
     // return -1;
 
+    // LPR lpr;
+    // return -1;
+
     NvBufferSession nbs;
     nbs = NvBufferSessionCreate();
 

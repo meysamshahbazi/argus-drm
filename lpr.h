@@ -36,8 +36,20 @@ private:
     std::vector<void*> buffers;
     float* output_buffer;
     float* blob;
+
+    int fd_blob {-1};
+    NvBufferSession nbs;
+
+    cv::Rect2i win;
+
+    std::vector<std::string> character;
+    void postprocess(std::vector<std::string> &objects);
+    void cudaBlobFromImageGray(void* img_gray, float* blob, int pitch);
 public:
     LPR();
     ~LPR();
+    std::vector<std::string> apply(int fd);
+    std::vector<std::string> apply(int fd, cv::Rect2i &win);
+
 };
 
