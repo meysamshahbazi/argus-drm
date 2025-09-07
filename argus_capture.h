@@ -4,8 +4,6 @@
 #include "Error.h"
 #include "Thread.h"
 #include <nvbuf_utils.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include "nvmmapi/NvNativeBuffer.h"
 #include <NvApplicationProfiler.h>
 #include "BufferStream.h"

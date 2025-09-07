@@ -230,10 +230,16 @@ void Yolo12::postprocess(std::vector<Object> &objects) {
     }
 }
 
+std::vector<Object> Yolo12::apply(int fd, cv::Rect2i &win) {
+    win = win;
+    return apply(fd);
+}
+
 std::vector<Object> Yolo12::apply(int fd) {
     std::vector<Object> objects;
-    scale_x = 6.0f;
-    scale_y = 3.0f;
+    scale_x = win.width / static_cast<float>(input_w);
+    scale_y = win.height/ static_cast<float>(input_h);
+    
     int src_dmabuf_fds[1];
     src_dmabuf_fds[0] = fd;
 

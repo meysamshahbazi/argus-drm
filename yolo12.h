@@ -121,6 +121,7 @@ public:
     ~Yolo12();
     Yolo12(int img_w, int img_h, std::string engine_file_path, cv::Rect2i &win);
     std::vector<Object> apply(int fd);
+    std::vector<Object> apply(int fd, cv::Rect2i &win);
 };
 
 
