@@ -8,15 +8,25 @@
 #include "tegra_drm_nvdc.h"
 
 #include "argus_capture.h"
+#include "video_encoder.h"
 #include "process_frame.h"
 
+void encode_callback(int i, void* arg)
+{
+
+}
+
 int main(int argc, char** argv) {
+
     // saveEngineFile("/home/user/best.onnx","/home/user/best.engine");
     // saveEngineFile("/home/user/best_accuracy.onnx","/home/user/best_accuracy.engine");
     // return -1;
 
-    // LPR lpr;
-    // return -1;
+    gst_init(&argc, &argv);
+
+    auto videoencoder = new VideoEncoder("enc0", 1920, 1080, V4L2_PIX_FMT_H264);
+    videoencoder->setBufferDoneCallback(&encode_callback, nullptr);
+    bool res = videoencoder->initialize();
 
     NvBufferSession nbs;
     nbs = NvBufferSessionCreate();
@@ -83,6 +93,7 @@ int main(int argc, char** argv) {
         
         NvBufferTransform(argb_fd, render_fd , &transParams);    
         hdmi->enqueBuffer(render_fd);
+        videoencoder->encodeFromFd(render_fd);
     }
 
     return 0;
