@@ -5,6 +5,22 @@
 #include <iostream>
 #include <unistd.h>
 
+// udp client driver program
+#include <stdio.h>
+#include <strings.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+#define PORT 5002
+#define MAXLINE 1000
+
+
+
+
 class GstRtp {
 private:
     GstElement *pipeline,*app_source,*rtph264pay,*udpsink;
@@ -38,6 +54,12 @@ public:
     static void stop_feed(GstElement *source, GstRtp *data);
     static gboolean push_data(GstRtp *data);
     static void error_cb(GstBus *bus, GstMessage *msg, GstRtp *data);
+
+
+    char udp_buffer[100];
+    char *message = "Hello Server";
+    int sockfd, n;
+    struct sockaddr_in servaddr;
 };
 
 #endif

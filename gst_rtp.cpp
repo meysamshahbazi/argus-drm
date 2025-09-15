@@ -1,8 +1,32 @@
 #include "gst_rtp.h"
+#include <sstream>
+
 
 GstRtp::GstRtp()
 {
     m_ip_addr = "224.1.1.3";
+
+
+
+    // clear servaddr
+    bzero(&servaddr, sizeof(servaddr));
+    servaddr.sin_addr.s_addr = inet_addr("10.42.0.1");
+    servaddr.sin_port = htons(PORT);
+    servaddr.sin_family = AF_INET;
+    
+    // create datagram socket
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    
+    // connect to server
+    if(connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0)
+    {
+        printf("\n Error : Connect Failed \n");
+        // exit(0);
+    }
+
+
+
+
 }
 
 GstRtp::~GstRtp() {
@@ -52,11 +76,16 @@ void GstRtp::create_pipe()
                     "alignment", G_TYPE_STRING, "au",
                     NULL);
 
-    g_object_set(app_source, "caps", caps, "format", GST_FORMAT_BYTES, NULL);
+    g_object_set(app_source, "caps", caps, "format", GST_FORMAT_TIME, NULL);
+
+    g_object_set(app_source,"do-timestamp", TRUE, NULL);
+
+    // g_object_set(app_source, "caps", caps, "format", GST_FORMAT_TIME, NULL);
+
     gst_caps_unref(caps);
 
     g_object_set(rtph264pay, "pt", 96, "config-interval", 1, NULL);
-    g_object_set(udpsink, "host", m_ip_addr.c_str(), "port", 5678, "sync", FALSE, NULL);
+    g_object_set(udpsink, "host", m_ip_addr.c_str(), "port", 5000, "sync", FALSE, NULL);
 
     g_signal_connect(app_source, "need-data", G_CALLBACK (start_feed), this);
     g_signal_connect(app_source, "enough-data", G_CALLBACK (stop_feed), this);
@@ -96,19 +125,32 @@ void GstRtp::setData(char* buf, uint32_t size) {
  * @param data 
  * @return gboolean 
  */
-gboolean GstRtp::push_data(GstRtp *data) {
+gboolean GstRtp::push_data(GstRtp *thiz) {
+    // std::cout << "push data \n";
     GstBuffer *buffer;
     GstFlowReturn ret;
     GstMapInfo map;
-    gint num_samples = data->m_size; 
+    gint num_samples = thiz->m_size; 
 
     /* Create a new empty buffer */
-    buffer = gst_buffer_new_and_alloc (data->m_size);
+    buffer = gst_buffer_new_and_alloc (thiz->m_size);
     
     // /* Set its timestamp and duration */
 
-    GST_BUFFER_TIMESTAMP (buffer) = gst_util_uint64_scale (data->tm++, GST_SECOND, 30);
-    GST_BUFFER_DURATION (buffer) = gst_util_uint64_scale (num_samples, GST_SECOND, 30);
+    gint64 ts = 0;
+    g_object_get(thiz->rtph264pay, "timestamp", &ts, NULL);
+    std::cout << ts << std::endl;
+
+
+    std::stringstream ss;
+    ss << "ts " << ts;
+    auto str = ss.str();
+    sendto(thiz->sockfd, str.c_str(), MAXLINE, 0, (struct sockaddr*)NULL, sizeof(servaddr));
+
+
+    // gst_util_get_timestamp();
+    // GST_BUFFER_TIMESTAMP (buffer) =  gst_util_uint64_scale ((thiz->tm++), GST_SECOND, 30);
+    // GST_BUFFER_DURATION (buffer) = gst_util_uint64_scale (1, GST_SECOND, 30);
 
     // gst_rtp_buffer_set_timestamp (GstRTPBuffer * rtp,
     //                           guint32 timestamp)
@@ -118,12 +160,12 @@ gboolean GstRtp::push_data(GstRtp *data) {
     gint8 *raw = (gint8 *)map.data;
 
     for (int i = 0; i < num_samples; i++) {
-        raw[i] = data->m_buf[i];
+        raw[i] = thiz->m_buf[i];
     }
     gst_buffer_unmap (buffer, &map);
 
     /* Push the buffer into the appsrc */
-    g_signal_emit_by_name (data->app_source, "push-buffer", buffer, &ret);
+    g_signal_emit_by_name (thiz->app_source, "push-buffer", buffer, &ret);
 
     /* Free the buffer now that we are done with it */
     gst_buffer_unref (buffer);
