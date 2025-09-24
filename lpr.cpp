@@ -3,18 +3,18 @@
 #include <bits/stdc++.h>
 
 LPR::LPR() {
-    character = {"[CTCblank]", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "g", "h", "j", "k", "l", "m", "n", "p", "q", "s", "t", "u", "v", "x", "y", "z"};
+    character = {"[CTCblank]", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "g", "h", "j", "k", "l", "m", "n", "p", "q", "s", "t", "u", "v", "x", "y", "z"};
     engine_file_path = "/home/user/best_accuracy.engine";
     loadEngine();
     std::cout << engine->getNbBindings() << std::endl;
-    auto d1 = engine->getBindingDimensions(0);
-    printDim(d1);
-    auto d2 = engine->getBindingDimensions(1);
-    printDim(d2);
+    // printDim(d1);
+    d1 = engine->getBindingDimensions(1).d[1];
+    d2 = engine->getBindingDimensions(1).d[2];
+    // printDim(d2);
     cudaStreamCreate(&stream);
     cudaMalloc(&blob, 1 * 32 * 100 * sizeof(float));
     // Initialize output buffer
-    cudaMallocManaged((void **) &output_buffer, 26 * 32*sizeof(float));
+    cudaMallocManaged((void **) &output_buffer, d1 * d2*sizeof(float));
     buffers.reserve(engine->getNbBindings());
     buffers[0] = (void *)blob;
     buffers[1] = (void *) output_buffer;
@@ -92,10 +92,10 @@ void LPR::postprocess(std::vector<std::string> &result) {
     std::vector<int> out_indexs;
     cudaStreamSynchronize(stream);
     cudaStreamAttachMemAsync(stream, output_buffer, 0, cudaMemAttachHost);
-    for (int i = 0; i < 26; i++) {
+    for (int i = 0; i < d1; i++) {
         std::vector<float> row;
-        for (int j = 0; j<32; j++)
-            row.push_back(output_buffer[i*32+j]);
+        for (int j = 0; j<d2; j++)
+            row.push_back(output_buffer[i*d2+j]);
 
         auto max_itr = std::max_element(row.begin(), row.end());
         
@@ -106,7 +106,7 @@ void LPR::postprocess(std::vector<std::string> &result) {
     }
 
     std::vector<int> out_cleaned; 
-    for (int i = 0; i < 26; i++) {
+    for (int i = 0; i < d1; i++) {
         if (out_indexs[i] != 0) {
             if (i == 0)
                 out_cleaned.push_back(out_indexs[i]);

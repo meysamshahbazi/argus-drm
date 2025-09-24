@@ -86,7 +86,7 @@ private:
     // Maximum supported image size (used for memory allocation checks)
 
     // Confidence threshold for filtering detections
-    float conf_threshold = 0.3f; //0.3
+    float conf_threshold = 0.298f; //0.3
 
     // Non-Maximum Suppression (NMS) threshold to remove duplicate boxes
     float nms_threshold = 0.4f; // 0.4

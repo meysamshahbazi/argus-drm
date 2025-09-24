@@ -139,7 +139,7 @@ gboolean GstRtp::push_data(GstRtp *thiz) {
 
     gint64 ts = 0;
     g_object_get(thiz->rtph264pay, "timestamp", &ts, NULL);
-    std::cout << ts << std::endl;
+    // std::cout << ts << std::endl;
 
 
     std::stringstream ss;

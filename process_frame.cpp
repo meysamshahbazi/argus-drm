@@ -2,7 +2,7 @@
 
 
 ProcessFrame::ProcessFrame(){
-    auto win = cv::Rect2i(0,60,1920,960); // 320*320
+    auto win = cv::Rect2i(0,28,1920,1024); // 128*128
     car_detect = new Yolo12(1920,1080,"/home/user/best.engine", win);
     
     auto win_plate = cv::Rect2i(0,60,1920,960);// cv::Rect2i(0,0,160,160); // 320*320
@@ -92,8 +92,12 @@ int ProcessFrame::apply(int fd) {
         plate_objs = plate_detect->apply(argb_fd,win_);
         // std::cout << "plate_objs size: " <<  plate_objs.size() << std::endl;
         for (auto obj : plate_objs){
-            cv::Rect2i win2 =  cv::Rect2i(obj.x, obj.y, obj.w, obj.h);
+            auto start = std::chrono::system_clock::now();
+            cv::Rect2i win2 =  cv::Rect2i(obj.x - 6, obj.y - 6, obj.w+12, obj.h+12);
             lpr->apply(argb_fd, win2);
+            auto end = std::chrono::system_clock::now();
+            auto micro = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+            std::cout << "lpr: " << micro/1000.0f << std::endl;
         }        
         // pthread_mutex_lock(&new_car_det_mutex);
         // new_car_det = true; 
@@ -112,7 +116,7 @@ int ProcessFrame::apply(int fd) {
     for (auto obj : plate_objs){
         // std::cout << "w2 is" << obj.getRect() <<std::endl;
         // std::cout << obj.label << ", " << obj.x<< ", " << obj.y << ", " << obj.x + obj.w  << ", " <<  obj.y + obj.h << "\n";
-        cudaDrawRect(img_ptr, img_ptr , 1920, 1080, IMAGE_RGBA8, obj.x, obj.y, obj.x + obj.w , obj.y + obj.h, 
+        cudaDrawRect(img_ptr, img_ptr , 1920, 1080, IMAGE_RGBA8, obj.x - 6, obj.y -6, obj.x + obj.w+6 , obj.y + obj.h+6, 
             make_float4(0.0, 0.0, 0.0, 0.0), make_float4(0.0f, 0.0f, 255.0f, 255.0f), 1 );
     }
     // std::cout << std::endl;

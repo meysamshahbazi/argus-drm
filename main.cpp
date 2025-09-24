@@ -17,7 +17,6 @@ void encode_callback(int i, void* arg)
 }
 
 int main(int argc, char** argv) {
-
     // saveEngineFile("/home/user/best.onnx","/home/user/best.engine");
     // saveEngineFile("/home/user/best_accuracy.onnx","/home/user/best_accuracy.engine");
     // return -1;
