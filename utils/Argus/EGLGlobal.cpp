@@ -27,7 +27,7 @@
  */
 
 #include "EGLGlobal.h"
-#include "Window.h"
+// #include "Window.h"
 #include "Error.h"
 #include "InitOnce.h"
 
@@ -142,7 +142,7 @@ bool EGLDisplayHolder::cleanup()
         if (!m_disableWindow)
         {
             // inform the window that the display is gone
-            Window::getInstance().onDisplayTermination(m_display);
+            // Window::getInstance().onDisplayTermination(m_display);
         }
 
         // continue even on failure, just report it

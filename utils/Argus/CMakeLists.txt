@@ -38,8 +38,8 @@ find_package(CUDA)
 find_package(NVMMAPI)
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
-pkg_check_modules(Cairo REQUIRED cairo)
+# pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
+# pkg_check_modules(Cairo REQUIRED cairo)
 
 set(SOURCES
     ArgusHelpers.cpp
@@ -52,8 +52,8 @@ set(SOURCES
     RectUtils.cpp
     Thread.cpp
     WindowBase.cpp
-    gtk/GuiElement.cpp
-    gtk/Window.cpp
+    # gtk/GuiElement.cpp
+    # gtk/Window.cpp
     )
 
 if(CUDA_FOUND AND OPENGLES_FOUND)

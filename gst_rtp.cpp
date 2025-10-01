@@ -4,6 +4,7 @@
 
 GstRtp::GstRtp()
 {
+    // host=192.168.1.26
     m_ip_addr = "224.1.1.3";
 
 
@@ -23,11 +24,12 @@ GstRtp::GstRtp()
         printf("\n Error : Connect Failed \n");
         // exit(0);
     }
-
-
-
-
 }
+
+/**
+ * gst-launch-1.0 -e nvarguscamerasrc ! 'video/x-raw(memory:NVMM), width=1920, height=1080, format=NV12, framerate=30/1' ! 
+ * nvv4l2h264enc bitrate=8000000 insert-sps-pps=true idrinterval=30 ! h264parse ! rtph264pay config-interval=1 mtu=1400 ! udpsink host=192.168.1.26 port=5000
+*/
 
 GstRtp::~GstRtp() {
     sendEos();
@@ -84,7 +86,7 @@ void GstRtp::create_pipe()
 
     gst_caps_unref(caps);
 
-    g_object_set(rtph264pay, "pt", 96, "config-interval", 1, NULL);
+    g_object_set(rtph264pay, "pt", 96, "config-interval", 1, "mtu", 1400, NULL);
     g_object_set(udpsink, "host", m_ip_addr.c_str(), "port", 5000, "sync", FALSE, NULL);
 
     g_signal_connect(app_source, "need-data", G_CALLBACK (start_feed), this);

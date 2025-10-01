@@ -210,7 +210,7 @@ bool VideoEncoder::createVideoEncoder()
     m_VideoEncoder->setInsertSpsPpsAtIdrEnabled(true);
 
     // ret = m_VideoEncoder->setBitrate(4 * 1024 * 1024);
-    ret = m_VideoEncoder->setBitrate(4 * 1024 * 1024);
+    ret = m_VideoEncoder->setBitrate(8000000);
     if (ret < 0)
         printf("Could not set bitrate");
 
@@ -238,7 +238,7 @@ bool VideoEncoder::createVideoEncoder()
     if (ret < 0)
         printf("Could not set rate control mode");
 
-    ret = m_VideoEncoder->setIFrameInterval(40);
+    ret = m_VideoEncoder->setIFrameInterval(30);
     if (ret < 0)
         printf("Could not set I-frame interval");
 
