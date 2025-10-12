@@ -82,7 +82,7 @@ target_link_libraries(${PROJECT_NAME}  vpi	-lpthread -lv4l2
 -lnvbuf_utils 
     -lnveglstream_camconsumer -lnvargus_socketclient
     -lnvjpeg -lnvosd -ldrm -lcuda -lcudart ${CUDA_nppicc_LIBRARY} 
-    -lgstreamer-1.0 -lgobject-2.0 -lglib-2.0 -lgio-2.0 
+    -lgstreamer-1.0 -lgstvideo-1.0 -lgobject-2.0 -lglib-2.0 -lgio-2.0 
     -lgstrtp-1.0 -lgstbase-1.0 
 )
 

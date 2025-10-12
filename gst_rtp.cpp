@@ -1,6 +1,9 @@
 #include "gst_rtp.h"
 #include <sstream>
 
+#include "my_frame_id_meta.h"
+#include "gst/video/gstvideometa.h"
+// #include <gst/rtp/gstrtpmeta.h>
 
 GstRtp::GstRtp()
 {
@@ -87,6 +90,7 @@ void GstRtp::create_pipe()
     gst_caps_unref(caps);
 
     g_object_set(rtph264pay, "pt", 96, "config-interval", 1, "mtu", 1400, NULL);
+    // g_object_set(rtph264pay, "pt", 96, /* "config-interval", 1, "mtu", 1400, */ NULL);
     g_object_set(udpsink, "host", m_ip_addr.c_str(), "port", 5000, "sync", FALSE, NULL);
 
     g_signal_connect(app_source, "need-data", G_CALLBACK (start_feed), this);
@@ -136,37 +140,37 @@ gboolean GstRtp::push_data(GstRtp *thiz) {
 
     /* Create a new empty buffer */
     buffer = gst_buffer_new_and_alloc (thiz->m_size);
-    
-    // /* Set its timestamp and duration */
 
-    gint64 ts = 0;
-    g_object_get(thiz->rtph264pay, "timestamp", &ts, NULL);
-    // std::cout << ts << std::endl;
-
-
-    std::stringstream ss;
-    ss << "ts " << ts;
-    auto str = ss.str();
-    sendto(thiz->sockfd, str.c_str(), MAXLINE, 0, (struct sockaddr*)NULL, sizeof(servaddr));
-
-
-    // gst_util_get_timestamp();
-    // GST_BUFFER_TIMESTAMP (buffer) =  gst_util_uint64_scale ((thiz->tm++), GST_SECOND, 30);
-    // GST_BUFFER_DURATION (buffer) = gst_util_uint64_scale (1, GST_SECOND, 30);
-
-    // gst_rtp_buffer_set_timestamp (GstRTPBuffer * rtp,
-    //                           guint32 timestamp)
-
-    /* Generate some psychodelic waveforms */
     gst_buffer_map (buffer, &map, GST_MAP_WRITE);
-    gint8 *raw = (gint8 *)map.data;
+    // buffer->pts = 12;
 
-    for (int i = 0; i < num_samples; i++) {
+    guint8 *raw = (guint8 *)map.data;
+
+
+     for (int i = 0; i < num_samples; i++) {
         raw[i] = thiz->m_buf[i];
     }
+    
+    // for (int i = 0; i < 5; i++) {
+    //     raw[i] = thiz->m_buf[i];
+    // }
+
+    // raw[5] = 0xaa;
+
+    // for (int i = 5; i < num_samples; i++) {
+    //     raw[i+1] = thiz->m_buf[i];
+    // }
+
+    // for (int i =0; i < 10; i++)
+    //     std::cout << int(raw[i]) << ", ";
+    
+    std::cout << " s: " << map.size << std::endl;
+
     gst_buffer_unmap (buffer, &map);
 
     /* Push the buffer into the appsrc */
+
+
     g_signal_emit_by_name (thiz->app_source, "push-buffer", buffer, &ret);
 
     /* Free the buffer now that we are done with it */
@@ -178,6 +182,106 @@ gboolean GstRtp::push_data(GstRtp *thiz) {
         return FALSE;
     }
     return TRUE;
+
+
+    // guint64 current_frame_id = 1234;
+    // GstVideoCropMeta *meta = (GstVideoCropMeta *)gst_buffer_add_meta(buffer, GST_VIDEO_CROP_META_INFO, NULL);
+    // meta->x = current_frame_id;
+
+
+
+    // GstMetaInfo gmi;
+    // gst_buffer_add_meta(buffer, &gmi, nullptr);
+
+
+    // GstBuffer *buffer;
+    // GstFlowReturn ret;
+
+    // 1. Increment the shared ID
+    // global_frame_counter++;
+
+
+    // 2. Prepare the video buffer
+    // You should set PTS and DTS here if you are not using auto-timestamps.
+    // e.g., GST_BUFFER_PTS (buffer) = gst_util_get_timestamp();
+
+    // 3. Attach the custom metadata
+    // gst_buffer_add_my_frame_id_meta (buffer, current_frame_id);
+    
+    // --- Synchronization Step ---
+    // 4. Send the metadata (Frame ID + Results) via UDP
+    
+    // Get your computed results
+
+    // Create the UDP packet: [Frame ID (8 bytes)] [x] [y] [w] [h]
+    // The key is including the 'current_frame_id'
+    // NOTE: Ensure your packing/endianness (e.g., struct.pack in Python, or use a custom C struct) 
+    // is consistent between sender (Jetson) and receiver (PC).
+    
+    // Example pseudocode for sending UDP:
+    // send_udp_packet_with_id(current_frame_id, x, y, w, h);
+    
+    // 5. Push the buffer to the GStreamer pipeline
+    // ret = gst_app_src_push_buffer (appsrc, buffer);
+
+    // if (ret != GST_FLOW_OK) {
+    //     g_warning ("Push buffer failed: %s", gst_flow_return_get_name(ret));
+    // }
+
+    // /* Set its timestamp and duration */
+
+    // gint64 ts = 0;
+    // g_object_get(thiz->rtph264pay, "timestamp", &ts, NULL);
+    // std::cout << ts << std::endl;
+
+
+    // std::stringstream ss;
+    // // ss << "ts " << ts;
+    // auto str = ss.str();
+    // std::cout << str << std::endl;
+    // sendto(thiz->sockfd, str.c_str(), MAXLINE, 0, (struct sockaddr*)NULL, sizeof(servaddr));
+
+
+    // gst_util_get_timestamp();
+    // GST_BUFFER_TIMESTAMP (buffer) =  gst_util_uint64_scale ((0), GST_SECOND, 30);
+    // GST_BUFFER_DURATION (buffer) = gst_util_uint64_scale (1, GST_SECOND, 30);
+
+    // gst_rtp_buffer_set_timestamp (GstRTPBuffer * rtp,
+    //                           guint32 timestamp)
+
+    /* Generate some psychodelic waveforms */
+
+
+    // gst_buffer_add_meta(buffer, )
+
+
+    // static const gchar* tags[] = { NULL };
+    // auto meta_info = gst_meta_register_custom ("mymeta", tags, NULL, NULL, NULL);
+    // gst_meta_api_type_register (const gchar * api,
+    //                         const gchar ** tags)
+    // auto meta = gst_buffer_add_custom_meta (buffer, "mymeta");
+    // auto metadata = gst_custom_meta_get_structure (meta);
+    // gst_structure_set (metadata, "uniq_id", G_TYPE_INT64, gint64(1234), nullptr);
+
+
+
+    // static const gchar* tags[] = { NULL };
+    // auto meta_info = gst_meta_register_custom ("mymeta", tags, NULL, NULL, NULL);
+    // // gst_meta_register(tags, )
+
+    // // gst_buffer_add_meta(buffer, const GstMetaInfo *info,
+    // //                                              gpointer params);
+    // auto meta = gst_buffer_add_custom_meta (buffer, "mymeta");
+    // auto metadata = gst_custom_meta_get_structure (meta);
+    // gst_structure_set (metadata, "property_name", G_TYPE_INT64, gint64(1), nullptr);
+
+    
+    // GstVideoCropMeta gvcm;
+    
+    
+    
+
+   
 }
 
 /**

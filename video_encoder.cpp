@@ -207,7 +207,12 @@ bool VideoEncoder::createVideoEncoder()
         printf("Could not set output plane format");
 
 
-    m_VideoEncoder->setInsertSpsPpsAtIdrEnabled(true);
+    ret = m_VideoEncoder->setInsertSpsPpsAtIdrEnabled(true);
+    if (ret < 0)
+        printf("Could not set setInsertSpsPpsAtIdrEnabled");
+    ret = m_VideoEncoder->setIDRInterval(30);
+    if (ret < 0)
+        printf("Could not set setIDRInterval");
 
     // ret = m_VideoEncoder->setBitrate(4 * 1024 * 1024);
     ret = m_VideoEncoder->setBitrate(8000000);

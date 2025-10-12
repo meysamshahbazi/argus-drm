@@ -11,10 +11,35 @@
 #include "video_encoder.h"
 #include "process_frame.h"
 
+
+VideoEncoder* videoencoder;
+ArgusCapture *ac;
+
 void encode_callback(int i, void* arg)
 {
 
 }
+
+bool run() {
+    
+}
+
+void* func_grab_run(void* arg) {
+    pthread_detach(pthread_self());
+    
+    while (1) {
+        int fd_ = ac->getFd();
+        if (fd_ == -1) continue;
+        // NvBufferTransform(fd_, argb_fd , &transParams);
+        // argb_fd = pf.apply(argb_fd);
+        videoencoder->encodeFromFd(fd_);
+    }
+
+
+    pthread_exit(NULL);
+}
+
+
 
 int main(int argc, char** argv) {
     // saveEngineFile("/home/user/best.onnx","/home/user/best.engine");
@@ -23,7 +48,9 @@ int main(int argc, char** argv) {
 
     gst_init(&argc, &argv);
 
-    auto videoencoder = new VideoEncoder("enc0", 1920, 1080, V4L2_PIX_FMT_H264);
+    pthread_t ptid_run;
+
+    videoencoder = new VideoEncoder("enc0", 1920, 1080, V4L2_PIX_FMT_H264);
     videoencoder->setBufferDoneCallback(&encode_callback, nullptr);
     bool res = videoencoder->initialize();
 
@@ -68,31 +95,37 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    ArgusCapture ac;
-    ac.run();
+    ac = new ArgusCapture();
+    ac->run();
 
     int render_cnt = 0;
     int render_fd;
 
     ProcessFrame pf;
 
-    while(1) {
-        int fd_ = ac.getFd();
-        if (fd_ == -1) continue;
 
+    pthread_create(&ptid_run, NULL, (THREADFUNCPTR)&func_grab_run, nullptr);
+
+    while(1) {
+   
+        // if (render_cnt < NUM_RENDER_BUFFERS ) {
+        //     render_fd = render_fd_arr[render_cnt];
+        //     render_cnt++;
+        // } 
+        // else {
+        //     render_fd = hdmi->dequeBuffer();
+        // }
+        
+        int fd_ = ac->getFd();
+        if (fd_ == -1) continue;
         NvBufferTransform(fd_, argb_fd , &transParams);
         argb_fd = pf.apply(argb_fd);
-        if (render_cnt < NUM_RENDER_BUFFERS ) {
-            render_fd = render_fd_arr[render_cnt];
-            render_cnt++;
-        } 
-        else {
-            render_fd = hdmi->dequeBuffer();
-        }
+        // videoencoder->encodeFromFd(fd_);
+        // usleep(30000);
+        // NvBufferTransform(argb_fd, render_fd , &transParams);    
+        // NvBufferTransform(fd_, render_fd , &transParams);    
+        // hdmi->enqueBuffer(argb_fd);
         
-        NvBufferTransform(argb_fd, render_fd , &transParams);    
-        hdmi->enqueBuffer(render_fd);
-        videoencoder->encodeFromFd(render_fd);
     }
 
     return 0;

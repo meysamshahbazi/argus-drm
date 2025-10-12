@@ -11,7 +11,7 @@
 #include "nvbuf_utils.h"
 #include "gst_rtp.h"
 
-#define MAX_QUEUED_BUFFERS (4)
+#define MAX_QUEUED_BUFFERS (3)
 
 
 class NvBuffer;

@@ -21,10 +21,12 @@ find ./ -type f -perm /a+x -exec ldd {} \; \
 
 PC:
 gst-launch-1.0 udpsrc port=5000 caps="application/x-rtp,media=video,payload=96,encoding-name=H264" ! queue max-size-buffers=1 ! rtph264depay ! vaapih264dec low-latency=true ! "video/x-raw(memory:VASurface), format=(string)NV12" ! vaapisink  sync=false
-gst-launch-1.0 -v udpsrc uri=udp://224.1.1.3:5000 ! "application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264, payload=(int)96" ! rtph264depay ! h264parse ! decodebin ! videoconvert ! autovideosink sync=false
+gst-launch-1.0 -v udpsrc uri=udp://224.1.1.3:5000 ! "application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264, payload=(int)96" ! queue max-size-buffers=1 ! rtph264depay ! h264parse ! decodebin ! videoconvert! timeoverlay ! autovideosink sync=false
+
+gst-launch-1.0 -v udpsrc uri=udp://224.1.1.3:5000 ! "application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264, payload=(int)96" ! queue max-size-buffers=1 ! rtph264depay ! h264parse ! nvh264dec ! videoconvert! timeoverlay ! autovideosink sync=false
 
 Jetson:
-gst-launch-1.0 -e nvarguscamerasrc ! 'video/x-raw(memory:NVMM), width=1920, height=1080, format=NV12, framerate=30/1' ! nvv4l2h264enc bitrate=8000000 insert-sps-pps=true idrinterval=30 ! h264parse ! rtph264pay config-interval=1 mtu=1400 ! udpsink host=192.168.1.26 port=5000
+gst-launch-1.0 -e nvarguscamerasrc ! 'video/x-raw(memory:NVMM), width=1920, height=1080, format=NV12, framerate=30/1' ! nvv4l2h264enc bitrate=8000000 insert-sps-pps=true idrinterval=30 ! h264parse ! rtph264pay config-interval=1 mtu=1400 ! udpsink host=224.1.1.3 port=5000
 
 
 
