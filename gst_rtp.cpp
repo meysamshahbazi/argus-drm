@@ -137,9 +137,11 @@ gboolean GstRtp::push_data(GstRtp *thiz) {
     GstFlowReturn ret;
     GstMapInfo map;
     gint num_samples = thiz->m_size; 
+    
 
+    int index = 5;
     /* Create a new empty buffer */
-    buffer = gst_buffer_new_and_alloc (thiz->m_size);
+    buffer = gst_buffer_new_and_alloc (thiz->m_size + index + 1);
 
     gst_buffer_map (buffer, &map, GST_MAP_WRITE);
     // buffer->pts = 12;
@@ -147,24 +149,31 @@ gboolean GstRtp::push_data(GstRtp *thiz) {
     guint8 *raw = (guint8 *)map.data;
 
 
-     for (int i = 0; i < num_samples; i++) {
-        raw[i] = thiz->m_buf[i];
-    }
-    
-    // for (int i = 0; i < 5; i++) {
+    // for (int i = 0; i < num_samples; i++) {
     //     raw[i] = thiz->m_buf[i];
     // }
-
-    // raw[5] = 0xaa;
-
-    // for (int i = 5; i < num_samples; i++) {
-    //     raw[i+1] = thiz->m_buf[i];
-    // }
-
-    // for (int i =0; i < 10; i++)
-    //     std::cout << int(raw[i]) << ", ";
     
-    std::cout << " s: " << map.size << std::endl;
+    for (int i = 0; i < index; i++) {
+        raw[i] = thiz->m_buf[i];
+    }
+
+    raw[index] = 10;
+    raw[index+1] = 11;
+    raw[index+2] = 12;
+    raw[index+3] = 13;
+    raw[index+4] = 14;
+
+    for (int i = index; i < num_samples; i++) {
+        raw[i+index] = thiz->m_buf[i];
+    }
+    std::cout << " s: " << map.size << "\t";
+
+    for (int i =0; i < 20; i++)
+        std::cout << int(raw[i]) << ", ";
+    
+    std::cout << std::endl;
+
+    
 
     gst_buffer_unmap (buffer, &map);
 
