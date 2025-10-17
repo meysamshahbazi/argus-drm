@@ -1,7 +1,7 @@
 #include "gst_rtp.h"
 #include <sstream>
 
-#include "my_frame_id_meta.h"
+// #include "my_frame_id_meta.h"
 #include "gst/video/gstvideometa.h"
 // #include <gst/rtp/gstrtpmeta.h>
 
@@ -75,17 +75,15 @@ void GstRtp::create_pipe()
 
     if (!pipeline || !app_source || !rtph264pay || !udpsink) 
         std::cout << "Not all elements could be created.\n";
-
+ 
     caps = gst_caps_new_simple("video/x-h264",
                     "stream-format", G_TYPE_STRING, "byte-stream",
-                    "alignment", G_TYPE_STRING, "au",
+                    "alignment", G_TYPE_STRING, "nal",
                     NULL);
-
-    g_object_set(app_source, "caps", caps, "format", GST_FORMAT_TIME, NULL);
 
     g_object_set(app_source,"do-timestamp", TRUE, NULL);
 
-    // g_object_set(app_source, "caps", caps, "format", GST_FORMAT_TIME, NULL);
+    g_object_set(app_source, "caps", caps, "format", GST_FORMAT_TIME, NULL);
 
     gst_caps_unref(caps);
 
@@ -120,6 +118,11 @@ void GstRtp::setData(char* buf, uint32_t size) {
     
     m_buf = buf;
     m_size = size;
+
+    frame_cnt++;
+    if (frame_cnt == 0) // avoid 4 zeros
+        frame_cnt++;
+
     push_data(this);
 }
 
@@ -138,52 +141,117 @@ gboolean GstRtp::push_data(GstRtp *thiz) {
     GstMapInfo map;
     gint num_samples = thiz->m_size; 
     
-
-    int index = 5;
-    /* Create a new empty buffer */
-    buffer = gst_buffer_new_and_alloc (thiz->m_size + index + 1);
-
-    gst_buffer_map (buffer, &map, GST_MAP_WRITE);
-    // buffer->pts = 12;
-
-    guint8 *raw = (guint8 *)map.data;
-
-
-    // for (int i = 0; i < num_samples; i++) {
-    //     raw[i] = thiz->m_buf[i];
-    // }
+    int start_index = 6;
+    int len = 0;
     
-    for (int i = 0; i < index; i++) {
+    uint8_t embed_data[len] = {31, 32, 33, 34};
+
+    /* Create a new empty buffer */
+    buffer = gst_buffer_new_and_alloc (thiz->m_size +15);
+    
+    gst_buffer_map (buffer, &map, GST_MAP_WRITE);
+    guint8 *raw = (guint8 *)map.data;
+    // SEI NAL Unit=[Start Code]+[NAL Unit Header (1 byte)]+[NAL Unit Payload (RBSP)]
+    // NAL Unit Payload (RBSP) = [SEI Payload Type]+[SEI Payload Size]+[User Data (UUID + Frame ID)]+[RBSP Trailing Bits]
+    // = 4 + 1 + 2 + (4)
+    raw[0] = 0x00;
+    raw[1] = 0x00;
+    raw[2] = 0x00;
+    raw[3] = 0x01;
+    // SEI NAL Unit Header Byte=0x06
+    raw[4] = 0x06;
+    // For User Data Unregistered, the type is 5
+    raw[5] = 0x05;
+    // len 
+    raw[6] = 0x08;
+
+
+    raw[7] = (thiz->frame_cnt >> 24) & 0xff;
+    raw[8] = (thiz->frame_cnt >> 16) & 0xff;
+    raw[9] = (thiz->frame_cnt >> 8) & 0xff;
+    raw[10] = (thiz->frame_cnt) & 0xff;
+
+
+    raw[11] = 0x00;
+    raw[12] = 0x00;
+    raw[13] = 0x00;
+    raw[14] = 0x00;
+
+    for (int i = 0; i < thiz->m_size; i++) {
+        raw[i+15] = thiz->m_buf[i];
+    }
+
+/* 
+    for (int i = 0; i < start_index; i++) {
         raw[i] = thiz->m_buf[i];
     }
 
-    raw[index] = 10;
-    raw[index+1] = 11;
-    raw[index+2] = 12;
-    raw[index+3] = 13;
-    raw[index+4] = 14;
-
-    for (int i = index; i < num_samples; i++) {
-        raw[i+index] = thiz->m_buf[i];
+    for (int j = 0; j <len; j++) {
+        raw[start_index+j] = embed_data[j];
     }
-    std::cout << " s: " << map.size << "\t";
 
-    for (int i =0; i < 20; i++)
-        std::cout << int(raw[i]) << ", ";
+    for (int i = start_index +len; i < num_samples + len; i++) {
+        raw[i] = thiz->m_buf[i-len];
+    }
+
+    */
+
+
+
+    // for (int i = 0; i < index; i++) {
+    //     raw[i] = thiz->m_buf[i];
+    // }
+
+    // raw[index] = 10;
+    // raw[index+1] = 11;
+    // raw[index+2] = 12;
+    // raw[index+3] = 13;
+    // raw[index+4] = 14;
+
+    // for (int i = index; i < num_samples; i++) {
+    //     raw[i+index] = thiz->m_buf[i];
+    // }
+    //
+
+    std::cout << map.size << "\t";
+
+    // for (int i =0; i < 40; i++)
+    //     std::cout << int(raw[i]) << ", ";
     
-    std::cout << std::endl;
+    int nb_nal = 0;
+    for (int i =0; i < map.size-3; i++) {   
+        if (raw[i]   == 0x00 &&
+            raw[i+1] == 0x00 &&
+            raw[i+2] == 0x00 &&
+            raw[i+3] == 0x01 ) {
+                nb_nal++; 
+                std::cout << "h: " << int(raw[i+4] ) << " \t";
+            }    
+    }
 
+    std::cout << nb_nal << " ";
+
+    std::cout << std::endl;
+    
     
 
     gst_buffer_unmap (buffer, &map);
 
     /* Push the buffer into the appsrc */
-
+    // GST_BUFFER_PTS (buffer) = 0;// gst_util_get_timestamp();
 
     g_signal_emit_by_name (thiz->app_source, "push-buffer", buffer, &ret);
 
     /* Free the buffer now that we are done with it */
     gst_buffer_unref (buffer);
+
+    // GstClockTime ts;
+    // g_object_get(thiz->rtph264pay, "timestamp", &ts, NULL);
+    
+
+
+    // GstClockTime pts = GST_BUFFER_PTS(buffer);
+    // std::cout << pts << "\n";
 
     if (ret != GST_FLOW_OK) {
         /* We got some error, stop sending data */
@@ -240,8 +308,7 @@ gboolean GstRtp::push_data(GstRtp *thiz) {
     // /* Set its timestamp and duration */
 
     // gint64 ts = 0;
-    // g_object_get(thiz->rtph264pay, "timestamp", &ts, NULL);
-    // std::cout << ts << std::endl;
+    
 
 
     // std::stringstream ss;

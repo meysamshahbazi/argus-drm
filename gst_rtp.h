@@ -41,6 +41,7 @@ private:
     pthread_t ptid;
     int tm {0};
     void sendEos();
+    uint32_t frame_cnt = 0;
 public:
     GstRtp();
     ~GstRtp();
