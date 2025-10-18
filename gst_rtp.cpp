@@ -10,8 +10,6 @@ GstRtp::GstRtp()
     // host=192.168.1.26
     m_ip_addr = "224.1.1.3";
 
-
-
     // clear servaddr
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_addr.s_addr = inet_addr("10.42.0.1");
@@ -88,7 +86,6 @@ void GstRtp::create_pipe()
     gst_caps_unref(caps);
 
     g_object_set(rtph264pay, "pt", 96, "config-interval", 1, "mtu", 1400, NULL);
-    // g_object_set(rtph264pay, "pt", 96, /* "config-interval", 1, "mtu", 1400, */ NULL);
     g_object_set(udpsink, "host", m_ip_addr.c_str(), "port", 5000, "sync", FALSE, NULL);
 
     g_signal_connect(app_source, "need-data", G_CALLBACK (start_feed), this);
@@ -140,17 +137,12 @@ gboolean GstRtp::push_data(GstRtp *thiz) {
     GstFlowReturn ret;
     GstMapInfo map;
     gint num_samples = thiz->m_size; 
-    
-    int start_index = 6;
-    int len = 0;
-    
-    uint8_t embed_data[len] = {31, 32, 33, 34};
-
     /* Create a new empty buffer */
-    buffer = gst_buffer_new_and_alloc (thiz->m_size +15);
+    buffer = gst_buffer_new_and_alloc(thiz->m_size +15);
     
     gst_buffer_map (buffer, &map, GST_MAP_WRITE);
     guint8 *raw = (guint8 *)map.data;
+
     // SEI NAL Unit=[Start Code]+[NAL Unit Header (1 byte)]+[NAL Unit Payload (RBSP)]
     // NAL Unit Payload (RBSP) = [SEI Payload Type]+[SEI Payload Size]+[User Data (UUID + Frame ID)]+[RBSP Trailing Bits]
     // = 4 + 1 + 2 + (4)
@@ -163,201 +155,39 @@ gboolean GstRtp::push_data(GstRtp *thiz) {
     // For User Data Unregistered, the type is 5
     raw[5] = 0x05;
     // len 
-    raw[6] = 0x08;
+    raw[6] = 0x07;
 
 
     raw[7] = (thiz->frame_cnt >> 24) & 0xff;
-    raw[8] = (thiz->frame_cnt >> 16) & 0xff;
-    raw[9] = (thiz->frame_cnt >> 8) & 0xff;
-    raw[10] = (thiz->frame_cnt) & 0xff;
+    raw[8] = 0xff;
+    raw[9] = (thiz->frame_cnt >> 16) & 0xff;
+    raw[10] = 0xff;
+    raw[11] = (thiz->frame_cnt >> 8) & 0xff;
+    raw[12] = 0xff;
+    raw[13] = (thiz->frame_cnt) & 0xff;
+    raw[14] = 0x80; // RBSP Trailing Bits
 
-
-    raw[11] = 0x00;
-    raw[12] = 0x00;
-    raw[13] = 0x00;
-    raw[14] = 0x00;
+   
 
     for (int i = 0; i < thiz->m_size; i++) {
         raw[i+15] = thiz->m_buf[i];
     }
 
-/* 
-    for (int i = 0; i < start_index; i++) {
-        raw[i] = thiz->m_buf[i];
-    }
-
-    for (int j = 0; j <len; j++) {
-        raw[start_index+j] = embed_data[j];
-    }
-
-    for (int i = start_index +len; i < num_samples + len; i++) {
-        raw[i] = thiz->m_buf[i-len];
-    }
-
-    */
-
-
-
-    // for (int i = 0; i < index; i++) {
-    //     raw[i] = thiz->m_buf[i];
-    // }
-
-    // raw[index] = 10;
-    // raw[index+1] = 11;
-    // raw[index+2] = 12;
-    // raw[index+3] = 13;
-    // raw[index+4] = 14;
-
-    // for (int i = index; i < num_samples; i++) {
-    //     raw[i+index] = thiz->m_buf[i];
-    // }
-    //
-
-    std::cout << map.size << "\t";
-
-    // for (int i =0; i < 40; i++)
-    //     std::cout << int(raw[i]) << ", ";
-    
-    int nb_nal = 0;
-    for (int i =0; i < map.size-3; i++) {   
-        if (raw[i]   == 0x00 &&
-            raw[i+1] == 0x00 &&
-            raw[i+2] == 0x00 &&
-            raw[i+3] == 0x01 ) {
-                nb_nal++; 
-                std::cout << "h: " << int(raw[i+4] ) << " \t";
-            }    
-    }
-
-    std::cout << nb_nal << " ";
-
-    std::cout << std::endl;
-    
-    
-
     gst_buffer_unmap (buffer, &map);
-
-    /* Push the buffer into the appsrc */
-    // GST_BUFFER_PTS (buffer) = 0;// gst_util_get_timestamp();
-
     g_signal_emit_by_name (thiz->app_source, "push-buffer", buffer, &ret);
 
     /* Free the buffer now that we are done with it */
     gst_buffer_unref (buffer);
-
-    // GstClockTime ts;
-    // g_object_get(thiz->rtph264pay, "timestamp", &ts, NULL);
-    
-
-
-    // GstClockTime pts = GST_BUFFER_PTS(buffer);
-    // std::cout << pts << "\n";
 
     if (ret != GST_FLOW_OK) {
         /* We got some error, stop sending data */
         std::cout << "Error in Push Data\n";
         return FALSE;
     }
-    return TRUE;
 
-
-    // guint64 current_frame_id = 1234;
-    // GstVideoCropMeta *meta = (GstVideoCropMeta *)gst_buffer_add_meta(buffer, GST_VIDEO_CROP_META_INFO, NULL);
-    // meta->x = current_frame_id;
-
-
-
-    // GstMetaInfo gmi;
-    // gst_buffer_add_meta(buffer, &gmi, nullptr);
-
-
-    // GstBuffer *buffer;
-    // GstFlowReturn ret;
-
-    // 1. Increment the shared ID
-    // global_frame_counter++;
-
-
-    // 2. Prepare the video buffer
-    // You should set PTS and DTS here if you are not using auto-timestamps.
-    // e.g., GST_BUFFER_PTS (buffer) = gst_util_get_timestamp();
-
-    // 3. Attach the custom metadata
-    // gst_buffer_add_my_frame_id_meta (buffer, current_frame_id);
-    
-    // --- Synchronization Step ---
-    // 4. Send the metadata (Frame ID + Results) via UDP
-    
-    // Get your computed results
-
-    // Create the UDP packet: [Frame ID (8 bytes)] [x] [y] [w] [h]
-    // The key is including the 'current_frame_id'
-    // NOTE: Ensure your packing/endianness (e.g., struct.pack in Python, or use a custom C struct) 
-    // is consistent between sender (Jetson) and receiver (PC).
-    
-    // Example pseudocode for sending UDP:
-    // send_udp_packet_with_id(current_frame_id, x, y, w, h);
-    
-    // 5. Push the buffer to the GStreamer pipeline
-    // ret = gst_app_src_push_buffer (appsrc, buffer);
-
-    // if (ret != GST_FLOW_OK) {
-    //     g_warning ("Push buffer failed: %s", gst_flow_return_get_name(ret));
-    // }
-
-    // /* Set its timestamp and duration */
-
-    // gint64 ts = 0;
-    
-
-
-    // std::stringstream ss;
-    // // ss << "ts " << ts;
-    // auto str = ss.str();
-    // std::cout << str << std::endl;
     // sendto(thiz->sockfd, str.c_str(), MAXLINE, 0, (struct sockaddr*)NULL, sizeof(servaddr));
 
-
-    // gst_util_get_timestamp();
-    // GST_BUFFER_TIMESTAMP (buffer) =  gst_util_uint64_scale ((0), GST_SECOND, 30);
-    // GST_BUFFER_DURATION (buffer) = gst_util_uint64_scale (1, GST_SECOND, 30);
-
-    // gst_rtp_buffer_set_timestamp (GstRTPBuffer * rtp,
-    //                           guint32 timestamp)
-
-    /* Generate some psychodelic waveforms */
-
-
-    // gst_buffer_add_meta(buffer, )
-
-
-    // static const gchar* tags[] = { NULL };
-    // auto meta_info = gst_meta_register_custom ("mymeta", tags, NULL, NULL, NULL);
-    // gst_meta_api_type_register (const gchar * api,
-    //                         const gchar ** tags)
-    // auto meta = gst_buffer_add_custom_meta (buffer, "mymeta");
-    // auto metadata = gst_custom_meta_get_structure (meta);
-    // gst_structure_set (metadata, "uniq_id", G_TYPE_INT64, gint64(1234), nullptr);
-
-
-
-    // static const gchar* tags[] = { NULL };
-    // auto meta_info = gst_meta_register_custom ("mymeta", tags, NULL, NULL, NULL);
-    // // gst_meta_register(tags, )
-
-    // // gst_buffer_add_meta(buffer, const GstMetaInfo *info,
-    // //                                              gpointer params);
-    // auto meta = gst_buffer_add_custom_meta (buffer, "mymeta");
-    // auto metadata = gst_custom_meta_get_structure (meta);
-    // gst_structure_set (metadata, "property_name", G_TYPE_INT64, gint64(1), nullptr);
-
-    
-    // GstVideoCropMeta gvcm;
-    
-    
-    
-
-   
+    return TRUE;
 }
 
 /**
