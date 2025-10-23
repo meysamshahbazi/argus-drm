@@ -1,10 +1,6 @@
 #include "gst_rtp.h"
 #include <sstream>
 
-// #include "my_frame_id_meta.h"
-#include "gst/video/gstvideometa.h"
-// #include <gst/rtp/gstrtpmeta.h>
-
 GstRtp::GstRtp()
 {
     // host=192.168.1.26
@@ -106,7 +102,6 @@ void GstRtp::create_pipe()
     pipe_created = true;
     g_main_loop_run(loop);
 }
-
 
 void GstRtp::setData(char* buf, uint32_t size) {
     
