@@ -1,0 +1,10 @@
+[Unit]
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/run.sh 
+Restart=always
+RestartSec=10ms
+
+[Install]
+WantedBy=default.target
