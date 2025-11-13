@@ -66,10 +66,10 @@ int main(int argc, char** argv) {
 
     static const int NUM_RENDER_BUFFERS{3};
 
-    struct drm_tegra_hdr_metadata_smpte_2086 drm_metadata;
-    NvDrmRenderer *hdmi = NvDrmRenderer::createDrmRenderer("renderer0", 1920, 1080, 0, 0,
-            /*connector*/ 0, /*crtc*/ 0, /*plane_id*/ 0, drm_metadata, true);
-    hdmi->setFPS(30);
+    // struct drm_tegra_hdr_metadata_smpte_2086 drm_metadata;
+    // NvDrmRenderer *hdmi = NvDrmRenderer::createDrmRenderer("renderer0", 1920, 1080, 0, 0,
+    //         /*connector*/ 0, /*crtc*/ 0, /*plane_id*/ 0, drm_metadata, true);
+    // hdmi->setFPS(30);
 
     NvBufferCreateParams cParams = {0};
     cParams.colorFormat = NvBufferColorFormat_ABGR32; // because the histogram qualizer works with this!

@@ -34,6 +34,7 @@ private:
     uint32_t m_size;
 
     std::string m_ip_addr;
+    std::string host_ip;
 
     bool eos_recived{false};
     bool pipe_created{false};

@@ -1,14 +1,24 @@
 #include "gst_rtp.h"
 #include <sstream>
+#include <bits/stdc++.h>
 
 GstRtp::GstRtp()
 {
-    // host=192.168.1.26
-    m_ip_addr = "224.1.1.3";
+    std::ifstream f("/home/user/rtpip.txt");
 
-    // clear servaddr
+    if (!f.is_open()) {
+        std::cerr << "Error opening the file!";
+    }
+    std::getline(f, m_ip_addr);
+    std::getline(f, host_ip);
+    f.close();
+
+
+    std::cout << m_ip_addr << std::endl;
+    std::cout << host_ip << std::endl;
+
     bzero(&servaddr, sizeof(servaddr));
-    servaddr.sin_addr.s_addr = inet_addr("10.42.0.1");
+    servaddr.sin_addr.s_addr = inet_addr(host_ip.c_str());
     servaddr.sin_port = htons(PORT);
     servaddr.sin_family = AF_INET;
     
