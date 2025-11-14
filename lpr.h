@@ -43,15 +43,16 @@ private:
     cv::Rect2i win;
 
     std::vector<std::string> character;
-    void postprocess(std::vector<std::string> &objects);
+    
+    std::vector<char> postprocess(std::vector<std::string> &objects);
     void cudaBlobFromImageGray(void* img_gray, float* blob, int pitch);
 
     int d1,d2; // dimention of output buffer
 public:
     LPR();
     ~LPR();
-    std::vector<std::string> apply(int fd);
-    std::vector<std::string> apply(int fd, cv::Rect2i &win);
+    std::vector<char> apply(int fd);
+    std::vector<char> apply(int fd, cv::Rect2i &win);
 
 };
 

@@ -15,6 +15,8 @@
 VideoEncoder* videoencoder;
 ArgusCapture *ac;
 
+GstRtp *gst_rtp;
+
 void encode_callback(int i, void* arg)
 {
 
@@ -27,13 +29,13 @@ bool run() {
 void* func_grab_run(void* arg) {
     pthread_detach(pthread_self());
     
-    while (1) {
-        int fd_ = ac->getFd();
-        if (fd_ == -1) continue;
-        // NvBufferTransform(fd_, argb_fd , &transParams);
-        // argb_fd = pf.apply(argb_fd);
-        videoencoder->encodeFromFd(fd_);
-    }
+    // while (1) {
+    //     int fd_ = ac->getFd();
+    //     if (fd_ == -1) continue;
+    //     // NvBufferTransform(fd_, argb_fd , &transParams);
+    //     // argb_fd = pf.apply(argb_fd);
+    //     videoencoder->encodeFromFd(fd_);
+    // }
 
 
     pthread_exit(NULL);
@@ -105,7 +107,7 @@ int main(int argc, char** argv) {
 
 
     pthread_create(&ptid_run, NULL, (THREADFUNCPTR)&func_grab_run, nullptr);
-
+    gst_rtp = videoencoder->getRtp();
     while(1) {
    
         // if (render_cnt < NUM_RENDER_BUFFERS ) {
@@ -119,8 +121,10 @@ int main(int argc, char** argv) {
         int fd_ = ac->getFd();
         if (fd_ == -1) continue;
         NvBufferTransform(fd_, argb_fd , &transParams);
-        argb_fd = pf.apply(argb_fd);
-        // videoencoder->encodeFromFd(fd_);
+        // argb_fd = 
+        auto md = pf.apply(argb_fd);
+        videoencoder->encodeFromFd(fd_);
+        gst_rtp->setMetaData(md);
         // usleep(30000);
         // NvBufferTransform(argb_fd, render_fd , &transParams);    
         // NvBufferTransform(fd_, render_fd , &transParams);    

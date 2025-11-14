@@ -1,6 +1,5 @@
 #include "process_frame.h"
 
-
 ProcessFrame::ProcessFrame(){
     auto win = cv::Rect2i(0,28,1920,1024); // 128*128
     car_detect = new Yolo12(1920,1080,"/home/user/best.engine", win);
@@ -77,7 +76,9 @@ void ProcessFrame::waitForNewDet() {
 }
 
 
-int ProcessFrame::apply(int fd) {
+PlateResult ProcessFrame::apply(int fd) {
+    PlateResult md;
+
     auto start = std::chrono::system_clock::now();
     car_objs = car_detect->apply(fd); 
     auto end = std::chrono::system_clock::now();
@@ -88,13 +89,21 @@ int ProcessFrame::apply(int fd) {
     if (car_objs.size() > 0) {
         argb_fd = fd;
         auto win_ = car_objs[0].getRect();
+        md.x_car = win_.x;
+        md.y_car = win_.y;
+        md.h_car = win_.width;
+        md.w_car = win_.height;
 
         plate_objs = plate_detect->apply(argb_fd,win_);
         // std::cout << "plate_objs size: " <<  plate_objs.size() << std::endl;
         for (auto obj : plate_objs){
             auto start = std::chrono::system_clock::now();
             cv::Rect2i win2 =  cv::Rect2i(obj.x - 6, obj.y - 6, obj.w+12, obj.h+12);
-            lpr->apply(argb_fd, win2);
+            md.x_plt = win2.x;
+            md.y_plt = win2.y;
+            md.h_plt = win2.width;
+            md.w_plt = win2.height;
+            md.plate_digit = lpr->apply(argb_fd, win2);
             auto end = std::chrono::system_clock::now();
             auto micro = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
             std::cout << "lpr: " << micro/1000.0f << std::endl;
@@ -122,5 +131,5 @@ int ProcessFrame::apply(int fd) {
     // std::cout << std::endl;
     cup.freeImage();
     
-    return fd;
+    return md;
 }

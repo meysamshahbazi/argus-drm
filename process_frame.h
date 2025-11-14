@@ -11,6 +11,8 @@
 #include <stdlib.h>
 #include "sysio.h"
 
+#include "gst_rtp.h"
+
 class ProcessFrame {
 private:
     Yolo12 *car_detect{nullptr};
@@ -38,6 +40,6 @@ private:
 public:
     ProcessFrame();
     ~ProcessFrame();
-    int apply(int fd);
+    PlateResult apply(int fd);
 
 };

@@ -44,6 +44,10 @@ public:
         m_callbackArg = arg;
     }
 
+    GstRtp *getRtp() {
+        return gst_rtp;
+    }
+
 private:
     const bool rtp_output{true};
     

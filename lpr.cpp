@@ -47,12 +47,12 @@ LPR::~LPR() {
     
 }
 
-std::vector<std::string> LPR::apply(int fd, cv::Rect2i &win_) {
+std::vector<char> LPR::apply(int fd, cv::Rect2i &win_) {
     win = win_;
     return apply(fd);
 }
 
-std::vector<std::string> LPR::apply(int fd) {
+std::vector<char> LPR::apply(int fd) {
     std::vector<std::string> result;
 
     int src_dmabuf_fds[1];
@@ -83,12 +83,12 @@ std::vector<std::string> LPR::apply(int fd) {
     cup.freeImage();
 
     context->enqueueV2(buffers.data(), stream, nullptr);
-    postprocess(result);
+    auto res = postprocess(result);
 
-    return result;
+    return res;
 }
 
-void LPR::postprocess(std::vector<std::string> &result) {
+std::vector<char> LPR::postprocess(std::vector<std::string> &result) {
     std::vector<int> out_indexs;
     cudaStreamSynchronize(stream);
     cudaStreamAttachMemAsync(stream, output_buffer, 0, cudaMemAttachHost);
@@ -117,9 +117,14 @@ void LPR::postprocess(std::vector<std::string> &result) {
         }
     }
 
-    for (auto i : out_cleaned)
+    std::vector<char> res;
+    for (auto i : out_cleaned){
+        res.push_back(character[i][0]);
         std::cout << character[i] << " , ";
+    }
+        
     std::cout << std::endl;
+    return res;
 }
 
 void LPR::loadEngine()
