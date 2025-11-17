@@ -242,4 +242,11 @@ ArgusCapture::~ArgusCapture() {
     eglTerminate(eglDisplay);
 }
 
+void ArgusCapture::setFd(int fd_) {
+    frame_cnt++;
+    last_fd = fd_;
+    new_frame_flag = true;
+    pthread_cond_broadcast(&new_frame_cond);
+}
+
 

@@ -177,15 +177,19 @@ public:
     int getFd() {
         return last_fd;
     }
-    void setFd(int fd_) {
-        frame_cnt++;
-        last_fd = fd_;
-    }
+
+    void setFd(int fd_);
+
     uint32_t getFrameCnt() {
         return frame_cnt;
     }
     bool thread_func();
     static void* func_grab_run(void* arg);
+
+    pthread_cond_t new_frame_cond = PTHREAD_COND_INITIALIZER ;
+    pthread_mutex_t new_frame_mutex = PTHREAD_MUTEX_INITIALIZER;
+    bool new_frame_flag{false};
+
 private:
     uint32_t frame_cnt = 0;
     pthread_t ptid_run;
@@ -197,5 +201,7 @@ private:
     Size2D<uint32_t> STREAM_SIZE;
     const uint32_t            DEFAULT_FPS = 30;
 
+
+    
 };
 

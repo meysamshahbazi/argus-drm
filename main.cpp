@@ -17,6 +17,11 @@ VideoEncoder* videoencoder;
 ArgusCapture *ac;
 GstRtp *gst_rtp;
 UdpClient *udp;
+ProcessFrame *pf;
+
+std::chrono::_V2::system_clock::time_point t_perv;
+
+
 
 void encode_callback(int i, void* arg)
 {
@@ -32,6 +37,17 @@ void* func_grab_run(void* arg) {
     gst_rtp = videoencoder->getRtp();
     uint32_t last_fc{0};
     while (1) {
+        struct timespec t;
+        clock_gettime(CLOCK_REALTIME, &t);
+        t.tv_sec += 0;
+        t.tv_nsec += 40000000;
+        
+        if (!ac->new_frame_flag)
+            pthread_cond_timedwait(&ac->new_frame_cond, 
+                &ac->new_frame_mutex, &t);
+
+        ac->new_frame_flag = false;
+
         int fd_ = ac->getFd();
         if (fd_ == -1) continue;
         uint32_t fc = ac->getFrameCnt();
@@ -42,11 +58,17 @@ void* func_grab_run(void* arg) {
         last_fc = fc;
         videoencoder->encodeFromFd(fd_);
         gst_rtp->setFrameCnt(fc);
+
+        // auto t_now = std::chrono::system_clock::now();
+        // auto micro = std::chrono::duration_cast<std::chrono::microseconds>(t_now -t_perv).count();
+        // t_perv = t_now;
+        // std::cout << "du: " << micro/1000.0f << std::endl;
     }
     pthread_exit(NULL);
 }
 
 int main(int argc, char** argv) {
+
     // saveEngineFile("/home/user/best.onnx","/home/user/best.engine");
     // saveEngineFile("/home/user/best_accuracy.onnx","/home/user/best_accuracy.engine");
     // return -1;
@@ -85,20 +107,23 @@ int main(int argc, char** argv) {
     ac = new ArgusCapture();
     ac->run();
 
-    int render_cnt = 0;
-    int render_fd;
-
-    ProcessFrame pf;
-
+    pf = new ProcessFrame();
     udp = new UdpClient();
 
     pthread_create(&ptid_run, NULL, (THREADFUNCPTR)&func_grab_run, nullptr);
+    uint32_t last_fc2 =0;
     while(1) {
         int fd_ = ac->getFd();
         auto fc = ac->getFrameCnt();
+        if (fc == last_fc2){
+            usleep(2000);
+            continue;
+        }
+        last_fc2 = fc;
+
         if (fd_ == -1) continue;
         NvBufferTransform(fd_, argb_fd , &transParams);
-        auto md = pf.apply(argb_fd);
+        auto md = pf->apply(argb_fd);
         md.frame_cnt = fc;
         udp->sendMetaData(md);     
     }

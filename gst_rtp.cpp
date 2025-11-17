@@ -142,8 +142,7 @@ gboolean GstRtp::push_data(GstRtp *thiz) {
     raw[5] = 0x05;
     // len 
     raw[6] = 0x07;
-
-
+    
     raw[7] = (thiz->frame_cnt >> 24) & 0xff;
     raw[8] = 0xff;
     raw[9] = (thiz->frame_cnt >> 16) & 0xff;
