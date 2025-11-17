@@ -115,21 +115,21 @@ PlateResult ProcessFrame::apply(int fd) {
     }
 
     
-    CudaProcess cup(fd);
-    auto img_ptr = cup.getImgPtr();
-    for (auto obj : car_objs){
-        // std::cout << obj.label << ", " << obj.x<< ", " << obj.y << ", " << obj.x + obj.w  << ", " <<  obj.y + obj.h << "\n";
-        cudaDrawRect(img_ptr, img_ptr , 1920, 1080, IMAGE_RGBA8, obj.x, obj.y, obj.x + obj.w , obj.y + obj.h, 
-            make_float4(0.0, 0.0, 0.0, 0.0), make_float4(200.0f, 0.0f, 0.0f, 255.0f), 1 );
-    }
-    for (auto obj : plate_objs){
-        // std::cout << "w2 is" << obj.getRect() <<std::endl;
-        // std::cout << obj.label << ", " << obj.x<< ", " << obj.y << ", " << obj.x + obj.w  << ", " <<  obj.y + obj.h << "\n";
-        cudaDrawRect(img_ptr, img_ptr , 1920, 1080, IMAGE_RGBA8, obj.x - 6, obj.y -6, obj.x + obj.w+6 , obj.y + obj.h+6, 
-            make_float4(0.0, 0.0, 0.0, 0.0), make_float4(0.0f, 0.0f, 255.0f, 255.0f), 1 );
-    }
-    // std::cout << std::endl;
-    cup.freeImage();
+    // CudaProcess cup(fd);
+    // auto img_ptr = cup.getImgPtr();
+    // for (auto obj : car_objs){
+    //     // std::cout << obj.label << ", " << obj.x<< ", " << obj.y << ", " << obj.x + obj.w  << ", " <<  obj.y + obj.h << "\n";
+    //     cudaDrawRect(img_ptr, img_ptr , 1920, 1080, IMAGE_RGBA8, obj.x, obj.y, obj.x + obj.w , obj.y + obj.h, 
+    //         make_float4(0.0, 0.0, 0.0, 0.0), make_float4(200.0f, 0.0f, 0.0f, 255.0f), 1 );
+    // }
+    // for (auto obj : plate_objs){
+    //     // std::cout << "w2 is" << obj.getRect() <<std::endl;
+    //     // std::cout << obj.label << ", " << obj.x<< ", " << obj.y << ", " << obj.x + obj.w  << ", " <<  obj.y + obj.h << "\n";
+    //     cudaDrawRect(img_ptr, img_ptr , 1920, 1080, IMAGE_RGBA8, obj.x - 6, obj.y -6, obj.x + obj.w+6 , obj.y + obj.h+6, 
+    //         make_float4(0.0, 0.0, 0.0, 0.0), make_float4(0.0f, 0.0f, 255.0f, 255.0f), 1 );
+    // }
+    // // std::cout << std::endl;
+    // cup.freeImage();
     
     return md;
 }

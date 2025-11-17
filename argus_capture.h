@@ -178,11 +178,16 @@ public:
         return last_fd;
     }
     void setFd(int fd_) {
+        frame_cnt++;
         last_fd = fd_;
+    }
+    uint32_t getFrameCnt() {
+        return frame_cnt;
     }
     bool thread_func();
     static void* func_grab_run(void* arg);
 private:
+    uint32_t frame_cnt = 0;
     pthread_t ptid_run;
     int last_fd {-1};
     /* This value is tricky.

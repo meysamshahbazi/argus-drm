@@ -55,6 +55,7 @@ bool ConsumerThread::threadExecute()
         int dmabuf_fd = dmabuf->getFd();
         last_fd = dmabuf_fd;
         ac->setFd(last_fd);
+        
         stream->releaseBuffer(dmabuf->getArgusBuffer());
     }
 

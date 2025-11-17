@@ -11,7 +11,8 @@
 #include <stdlib.h>
 #include "sysio.h"
 
-#include "gst_rtp.h"
+#include "udp_client.h"
+
 
 class ProcessFrame {
 private:
