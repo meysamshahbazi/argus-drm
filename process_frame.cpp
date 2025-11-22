@@ -87,7 +87,7 @@ PlateResult ProcessFrame::apply(int fd) {
     car_objs = car_detect->apply(fd); 
     auto end = std::chrono::system_clock::now();
     auto micro = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    std::cout << "detect: " << micro/1000.0f << std::endl;
+    // std::cout << "detect: " << micro/1000.0f << std::endl;
 
     std::sort(car_objs.begin(), car_objs.end(), comp);
     
