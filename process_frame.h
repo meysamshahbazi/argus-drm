@@ -42,5 +42,4 @@ public:
     ProcessFrame();
     ~ProcessFrame();
     PlateResult apply(int fd);
-
 };

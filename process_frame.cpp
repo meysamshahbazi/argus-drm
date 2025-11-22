@@ -11,7 +11,7 @@ ProcessFrame::ProcessFrame(){
     quit = false; 
 
     NvBufferCreateParams cParams = {0};
-    cParams.colorFormat = NvBufferColorFormat_ABGR32; // because the histogram qualizer works with this!
+    cParams.colorFormat = NvBufferColorFormat_ABGR32;
     cParams.width = 160;
     cParams.height = 160;
     cParams.layout = NvBufferLayout_Pitch;
@@ -28,7 +28,7 @@ ProcessFrame::ProcessFrame(){
     transParams.session = nbs;
 
     lpr = new LPR();
-    run();
+    // run();
 }
 
 ProcessFrame::~ProcessFrame(){
@@ -75,6 +75,10 @@ void ProcessFrame::waitForNewDet() {
     new_car_det = false;
 }
 
+bool comp(Object o1, Object o2) {
+    return o1.prob > o2.prob;
+}
+
 
 PlateResult ProcessFrame::apply(int fd) {
     PlateResult md;
@@ -83,7 +87,10 @@ PlateResult ProcessFrame::apply(int fd) {
     car_objs = car_detect->apply(fd); 
     auto end = std::chrono::system_clock::now();
     auto micro = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    // std::cout << "detect: " << micro/1000.0f << std::endl;
+    std::cout << "detect: " << micro/1000.0f << std::endl;
+
+    std::sort(car_objs.begin(), car_objs.end(), comp);
+    
     std::vector<Object> plate_objs;
 
     if (car_objs.size() > 0) {
@@ -91,18 +98,21 @@ PlateResult ProcessFrame::apply(int fd) {
         auto win_ = car_objs[0].getRect();
         md.x_car = win_.x;
         md.y_car = win_.y;
-        md.h_car = win_.width;
-        md.w_car = win_.height;
+        md.w_car = win_.width;
+        md.h_car = win_.height;
 
         plate_objs = plate_detect->apply(argb_fd,win_);
         // std::cout << "plate_objs size: " <<  plate_objs.size() << std::endl;
-        for (auto obj : plate_objs){
+        std::sort(plate_objs.begin(), plate_objs.end(), comp);
+
+        if (plate_objs.size() > 0 ) {
             auto start = std::chrono::system_clock::now();
+            auto obj = plate_objs[0];
             cv::Rect2i win2 =  cv::Rect2i(obj.x - 6, obj.y - 6, obj.w+12, obj.h+12);
             md.x_plt = win2.x;
             md.y_plt = win2.y;
-            md.h_plt = win2.width;
-            md.w_plt = win2.height;
+            md.w_plt = win2.width;
+            md.h_plt = win2.height;
             md.plate_digit = lpr->apply(argb_fd, win2);
             auto end = std::chrono::system_clock::now();
             auto micro = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -112,24 +122,6 @@ PlateResult ProcessFrame::apply(int fd) {
         // new_car_det = true; 
         // pthread_cond_broadcast(&new_car_det_cond);
         // pthread_mutex_unlock(&new_car_det_mutex);
-    }
-
-    
-    // CudaProcess cup(fd);
-    // auto img_ptr = cup.getImgPtr();
-    // for (auto obj : car_objs){
-    //     // std::cout << obj.label << ", " << obj.x<< ", " << obj.y << ", " << obj.x + obj.w  << ", " <<  obj.y + obj.h << "\n";
-    //     cudaDrawRect(img_ptr, img_ptr , 1920, 1080, IMAGE_RGBA8, obj.x, obj.y, obj.x + obj.w , obj.y + obj.h, 
-    //         make_float4(0.0, 0.0, 0.0, 0.0), make_float4(200.0f, 0.0f, 0.0f, 255.0f), 1 );
-    // }
-    // for (auto obj : plate_objs){
-    //     // std::cout << "w2 is" << obj.getRect() <<std::endl;
-    //     // std::cout << obj.label << ", " << obj.x<< ", " << obj.y << ", " << obj.x + obj.w  << ", " <<  obj.y + obj.h << "\n";
-    //     cudaDrawRect(img_ptr, img_ptr , 1920, 1080, IMAGE_RGBA8, obj.x - 6, obj.y -6, obj.x + obj.w+6 , obj.y + obj.h+6, 
-    //         make_float4(0.0, 0.0, 0.0, 0.0), make_float4(0.0f, 0.0f, 255.0f, 255.0f), 1 );
-    // }
-    // // std::cout << std::endl;
-    // cup.freeImage();
-    
+    }    
     return md;
 }

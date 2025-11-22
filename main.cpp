@@ -113,6 +113,8 @@ int main(int argc, char** argv) {
     pthread_create(&ptid_run, NULL, (THREADFUNCPTR)&func_grab_run, nullptr);
     uint32_t last_fc2 =0;
     while(1) {
+        // sleep(1);
+
         int fd_ = ac->getFd();
         auto fc = ac->getFrameCnt();
         if (fc == last_fc2){
