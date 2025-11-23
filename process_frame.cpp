@@ -79,7 +79,6 @@ bool comp(Object o1, Object o2) {
     return o1.prob > o2.prob;
 }
 
-
 PlateResult ProcessFrame::apply(int fd) {
     PlateResult md;
 
